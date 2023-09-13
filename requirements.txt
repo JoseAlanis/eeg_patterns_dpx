@@ -1,0 +1,17 @@
+ipykernel==6.25.1
+ipython==8.14.0
+pandas==2.0.3
+numba==0.57.1
+matplotlib==3.7.1
+qtpy
+PyQt6
+tqdm
+pyvista==0.41.1
+pyvistaqt>=0.4
+ipympl
+mne-bids==0.13
+pyprep==0.4.2
+autoreject
+mne-icalabel==0.4
+click==8.1.7
+matplotlib==3.7.1

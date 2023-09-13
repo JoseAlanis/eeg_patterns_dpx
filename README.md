@@ -1,1 +1,1 @@
-# eeg_patterns_dpx
+# Neurocognitive dynamics of preparatory and adaptive cognitive control
