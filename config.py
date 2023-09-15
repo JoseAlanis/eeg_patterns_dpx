@@ -30,7 +30,7 @@ with open("./paths.json") as paths:
 
 # -----------------------------------------------------------------------------
 # file paths
-# path to sourcedata (biosemi files)
+# path to sourcedata (Biosemi files)
 FPATH_SOURCEDATA = Path(paths['sourcedata'])
 # path to BIDS compliant directory structure
 FPATH_BIDS = Path(paths['bids'])
@@ -112,3 +112,8 @@ task_events = {
     'start_record': 17,
     'pause_record': 18,
 }
+
+# %%
+# get anonymisation parameters
+with open("./anonym.json") as anonym:
+    anonym = json.load(anonym)

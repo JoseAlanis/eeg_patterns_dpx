@@ -21,7 +21,7 @@ from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
 
-from mne import events_from_annotations, concatenate_raws, open_report
+from mne import events_from_annotations, concatenate_raws, Report
 from mne.preprocessing import ICA
 from mne.utils import logger
 
@@ -98,6 +98,15 @@ sfreq = raw.info['sfreq']
 
 # get montage
 montage = raw.get_montage()
+
+# deactivate sensor 'FT8', 'F7', for subject 2 (bad quality during recording)
+if subject == 2:
+    raw.info['bads'] = ['FT8', 'F7']
+    raw.interpolate_bads(mode='accurate')
+# deactivate sensor 'AF7' for subject 36 (bad quality during recording)
+elif subject == 36:
+    raw.info['bads'] = ['AF7']
+    raw.interpolate_bads(mode='accurate')
 
 # %%
 # extract relevant parts of the recording
@@ -241,3 +250,77 @@ raw_bl = raw_bl.filter(l_freq=0.05, h_freq=40.0,
                        fir_window='hamming',
                        fir_design='firwin',
                        n_jobs=jobs)
+
+# %%
+# create path for preprocessed data
+FPATH_PREPROCESSED = os.path.join(
+    FPATH_DERIVATIVES,
+    'preprocessing',
+    'sub-%s' % f'{subject:03}',
+    'eeg',
+    'sub-%s_task-%s_preprocessed-raw.fif' % (f'{subject:03}', 'dpx'))
+
+# check if directory exists
+if not Path(FPATH_PREPROCESSED).exists():
+    Path(FPATH_PREPROCESSED).parent.mkdir(parents=True, exist_ok=True)
+
+# save file
+if overwrite:
+    logger.info("`overwrite` is set to ``True`` ")
+
+raw_bl.save(FPATH_PREPROCESSED, overwrite=overwrite)
+
+# %%
+if report:
+    # make path
+    FPATH_REPORT = os.path.join(
+        FPATH_DERIVATIVES,
+        'preprocessing',
+        'sub-%s' % f'{subject:03}',
+        'report')
+    # create path on the fly
+    if not Path(FPATH_REPORT).exists():
+        Path(FPATH_REPORT).mkdir(parents=True, exist_ok=True)
+
+    # create data report
+    bidsdata_report = Report(title='Subject %s' % f'{subject:03}')
+    bidsdata_report.add_raw(raw=raw_bl, title='Raw data',
+                            butterfly=False,
+                            replace=True,
+                            psd=True)
+
+    # add bad channels
+    bads_html = """
+    <p>Bad channels identified by PyPrep:</p>
+    <p>%s</p> 
+    """ % '<br> '.join([key + ' ' + str(val)
+                        for key, val in bad_channels.items()])
+    bidsdata_report.add_html(title='Bad channels',
+                             tags='bads',
+                             html=bads_html,
+                             replace=True)
+    # add ica
+    fig = ica.plot_components(show=False, picks=np.arange(ica.n_components_))
+    plt.close('all')
+
+    bidsdata_report.add_figure(
+        fig=fig,
+        tags='ica',
+        title='ICA cleaning',
+        caption='Bad components identified by ICA Label: %s' % ', '.join(
+            str(ix) + ': ' + labels[ix] for ix in exclude_idx),
+        image_format='PNG',
+        replace=True
+    )
+
+    for rep_ext in ['hdf5', 'html']:
+        FPATH_REPORT_O = os.path.join(
+            FPATH_REPORT,
+            'sub-%s_task-%s_prep_report.%s' % (f'{subject:03}', 'dpx', rep_ext))
+
+        if overwrite:
+            logger.info("`overwrite` is set to ``True`` ")
+
+            bidsdata_report.save(FPATH_REPORT_O,
+                                 overwrite=overwrite,
+                                 open_browser=False)

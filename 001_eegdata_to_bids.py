@@ -32,7 +32,8 @@ from config import (
     FNAME_SOURCEDATA_TEMPLATE,
     SUBJECT_IDS,
     montage,
-    event_id
+    event_id,
+    anonym
 )
 
 from utils import parse_overwrite
@@ -157,6 +158,8 @@ output_path = BIDSPath(subject=f'{subject:03}',
 
 # write file
 write_raw_bids(raw,
+               anonymize={'daysback': anonym['daysback'],
+                          'keep_his': True},
                events=events,
                event_id=event_id,
                bids_path=output_path,
