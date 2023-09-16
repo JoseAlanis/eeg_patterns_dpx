@@ -195,7 +195,6 @@ bad_channels = {'bads_by_deviation:': noisy_dectector.bad_by_deviation,
                 'bads_by_correlation:': noisy_dectector.bad_by_correlation,
                 'bads_by_SNR:': noisy_dectector.bad_by_SNR}
 
-# %%
 # interpolate the identified bad channels
 raw_bl.info['bads'] = noisy_dectector.get_bads()
 raw_bl.interpolate_bads(mode='accurate')

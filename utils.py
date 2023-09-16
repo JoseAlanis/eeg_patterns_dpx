@@ -65,12 +65,19 @@ from mne.utils import logger
     help="Do you want to generate HTML-reports?"
 )
 @click.option(
+    "--gat",
+    default=False,
+    type=bool,
+    help="Should GAT analysis specifics be used (only for epochs extraction)."
+)
+@click.option(
     "--jobs",
     default=1,
     type=int,
     help="The number of jobs to run in parallel."
 )
-def get_inputs(subject, task, stimulus, overwrite, interactive, report, jobs):
+def get_inputs(subject, task, stimulus, overwrite, interactive, report, gat,
+               jobs):
     """
     Parse command-line inputs for data processing options.
 
@@ -85,9 +92,6 @@ def get_inputs(subject, task, stimulus, overwrite, interactive, report, jobs):
     stimulus : str, optional
         Specifies the stimulus to be processed, e.g., "cue". Defaults to "cue".
 
-    window : str, optional
-        Specifies the time window to be processed. Defaults to "pre".
-
     overwrite : bool, optional
         Indicates if existing files should be overwritten. Defaults to False.
 
@@ -96,6 +100,9 @@ def get_inputs(subject, task, stimulus, overwrite, interactive, report, jobs):
 
     report : bool, optional
         Indicates if HTML-reports should be generated. Defaults to False.
+
+    gat : bool, optional
+        Should GAT analysis specifics be used (only for epochs extraction).
 
     jobs : int, optional
         The number of jobs to run in parallel. Defaults to 1.
@@ -116,6 +123,7 @@ def get_inputs(subject, task, stimulus, overwrite, interactive, report, jobs):
         overwrite=overwrite,
         interactive=interactive,
         report=report,
+        gat=gat,
         jobs=jobs,
     )
 
