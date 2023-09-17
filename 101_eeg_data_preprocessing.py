@@ -315,7 +315,8 @@ if report:
     for rep_ext in ['hdf5', 'html']:
         FPATH_REPORT_O = os.path.join(
             FPATH_REPORT,
-            'sub-%s_task-%s_prep_report.%s' % (f'{subject:03}', 'dpx', rep_ext))
+            'sub-%s_task-%s_preprocessing_report.%s'
+            % (f'{subject:03}', 'dpx', rep_ext))
 
         if overwrite:
             logger.info("`overwrite` is set to ``True`` ")
