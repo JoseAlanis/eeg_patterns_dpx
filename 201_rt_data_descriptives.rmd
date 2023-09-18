@@ -1,0 +1,128 @@
+---
+title: "DPX-EEG: Compute sample statistics"
+author: "José C. García Alanis"
+date:  "`r Sys.Date()`"
+output:
+html_document:
+theme: lumen
+highlight: pygments
+css: "styler.css"
+---
+
+Created with `r R.version.string`
+```{r, setup, include = FALSE}
+knitr::opts_chunk$set(class.source = "customCode",
+                      class.output = "customOutput",
+                      class.message = "customWarning")
+if(interactive()){
+  path <- dirname(rstudioapi::getSourceEditorContext()$path)
+} else {
+  path <- normalizePath('./')
+}
+setwd(path)
+source('utils.R')
+```
+
+## 0) Load necessary packages:
+
+```{r}
+load.package(c('rjson', 'dplyr', 'stringr', 'gt', 'papaja'))
+```
+
+
+# 1) Import the data
+
+```{r}
+# get paths to data
+paths <- fromJSON(file = "paths.json")
+fpath_tables <- paste(paths$bids,
+                      'derivatives',
+                      'behavioural_analysis',
+                      'tables',
+                      sep = '/')
+dir.create(fpath_tables)
+
+# import demographic data
+subjects_data <- read.table(
+  paste(paths$bids, 'participants.tsv', sep = '/'),
+  sep = '\t',
+  header = TRUE
+)
+```
+
+# 2) Compute mean age and sd
+
+For the overall sample:
+
+```{r}
+subjects_data <- subjects_data %>%
+  mutate(subject = str_sub(participant_id, 5)) %>%
+  mutate(subject = as.numeric(subject))
+save(subjects_data,
+     file = paste(paths$bids,
+                  'derivatives',
+                  'behavioural_analysis',
+                  '00_subjects.RData',
+                  sep = '/'
+     )
+)
+
+# save overall mean age and SD
+overall_means <- subjects_data %>%
+  summarise(`Mean Age` = mean(age),
+            SD = sd(age),
+            `Max. Age` = max(age),
+            `Min. Age` = min(age))
+overall_means %>%
+  apa(stub = F) %>%
+  tab_header(title = md("<b>Table S1</b>
+        <br><br><em>Age mean and SD for the complete sample</em>")) %>%
+  fmt_number(columns = 1:4, decimals = 2) %>%
+  tab_options(table.width = pct(50)) %>%
+  gtsave(
+    paste(fpath_tables,
+          'TS1_overall_age.html',
+          sep = '/'
+    )
+  )
+overall_means
+```
+
+For male and females:
+
+```{r}
+# save mean age and SD by sex group
+male_female_means <- subjects_data %>%
+  group_by(sex) %>%
+  summarise(`Mean Age` = mean(age),
+            SD = sd(age),
+            `Max. Age` = max(age),
+            `Min. Age` = min(age))
+male_female_means %>%
+  apa(stub = F) %>%
+  tab_header(title = md("<b>Table S2</b>
+        <br><br><em>Age mean and SD for male and female</em>")) %>%
+  fmt_number(columns = 2:5, decimals = 2) %>%
+  tab_options(table.width = pct(50)) %>%
+  gtsave(
+    paste(fpath_tables,
+          'TS2_age_by_sex.html',
+          sep = '/')
+  )
+male_female_means
+```
+
+# 3) Check if subgroups have different age
+
+```{r}
+# equality of variance
+car::leveneTest(data = subjects_data, age ~ sex)
+```
+
+```{r}
+# t-test
+t.test(age ~ sex,
+       var.equal = TRUE,
+       data = subjects_data,
+       conf.level = .99)
+```
