@@ -90,6 +90,7 @@ FPATH_BETAS = os.path.join(FPATH_DERIVATIVES,
                            'sub-*',
                            'sub-*_betas.npy')
 FPATH_BETAS = glob.glob(FPATH_BETAS)
+FPATH_BETAS.sort()
 
 # %%
 # load subject level results
@@ -240,7 +241,7 @@ fig.savefig('../results/figures/ttest_cues_tvals_%s.png' % method,
 fig = plot_contrast_sensor(cue_contrast_t,
                            lower_b=l_tval, upper_b=u_tval,
                            sig_mask=sig_mask,
-                           sensors=['F2', 'FC1', 'Pz', 'P5'],
+                           sensors=['Fz', 'FCz', 'Pz', 'PO8'],
                            xlim=[-0.25, 2.50],
                            ylim=[-15, 15],
                            figsize=(5.5, 10.5),
@@ -290,7 +291,10 @@ l_tval = l_tval.reshape((n_channels, n_times))
 u_tval = np.quantile(a_bias_boot, axis=0, q=1 - 0.01 / 2)
 u_tval = u_tval.reshape((n_channels, n_times))
 
-fig = a_bias_effect.plot_joint(times=[0.50, 1.13, 1.32, 2.00],
+sig_threshold = np.quantile(a_bias_boot ** 2, [.99], axis=0)
+sig_mask = (t_vals.reshape((n_channels, n_times)) ** 2) >= sig_threshold
+
+fig = a_bias_effect.plot_joint(times=[0.80, 1.13, 1.32, 2.00],
                                topomap_args=dict(vlim=(-2.5, 2.5),
                                                  time_unit='ms'),
                                ts_args=dict(ylim=dict(eeg=[-2, 2]),
@@ -319,7 +323,7 @@ fig.savefig('../results/figures/a_bias_cue_evoked.png', dpi=300)
 fig = plot_contrast_sensor(a_bias_effect,
                            lower_b=l_tval, upper_b=u_tval,
                            sig_mask=None,
-                           sensors=['FCz', 'Pz'],
+                           sensors=['Pz', 'P5'],
                            xlim=[-0.25, 2.5],
                            ylim=[-3, 3],
                            ylabel=r'$\beta$ ($\mu$V)',
@@ -371,7 +375,7 @@ l_tval = l_tval.reshape((n_channels, n_times))
 u_tval = np.quantile(d_context_boot, axis=0, q=1 - 0.01 / 2)
 u_tval = u_tval.reshape((n_channels, n_times))
 
-fig = d_context_effect.plot_joint(times=[0.61, 0.71],
+fig = d_context_effect.plot_joint(times=[0.95, 0.71],
                                   topomap_args=dict(vlim=(-2.5, 2.5),
                                                     time_unit='ms'),
                                   ts_args=dict(ylim=dict(eeg=[-2, 2]),
@@ -400,7 +404,7 @@ fig.savefig('../results/figures/d_context_cue_evoked.png', dpi=300)
 fig = plot_contrast_sensor(d_context_effect,
                            lower_b=l_tval, upper_b=u_tval,
                            sig_mask=None,
-                           sensors=['Cz', 'C1'],
+                           sensors=['FCz', 'CP2'],
                            xlim=[-0.25, 2.5],
                            ylim=[-3, 3],
                            ylabel=r'$\beta$ ($\mu$V)',
