@@ -71,13 +71,19 @@ from mne.utils import logger
     help="Should GAT analysis specifics be used (only for epochs extraction)."
 )
 @click.option(
+    "--contrast",
+    default='ax_bx',
+    type=str,
+    help="Should GAT analysis specifics be used (only for epochs extraction)."
+)
+@click.option(
     "--jobs",
     default=1,
     type=int,
     help="The number of jobs to run in parallel."
 )
 def get_inputs(subject, task, stimulus, overwrite, interactive, report, gat,
-               jobs):
+               contrast, jobs):
     """
     Parse command-line inputs for data processing options.
 
@@ -104,6 +110,9 @@ def get_inputs(subject, task, stimulus, overwrite, interactive, report, gat,
     gat : bool, optional
         Should GAT analysis specifics be used (only for epochs extraction).
 
+    contrast : bool, optional
+        Which conditions should be contrasted.
+
     jobs : int, optional
         The number of jobs to run in parallel. Defaults to 1.
 
@@ -124,6 +133,7 @@ def get_inputs(subject, task, stimulus, overwrite, interactive, report, gat,
         interactive=interactive,
         report=report,
         gat=gat,
+        contrast=contrast,
         jobs=jobs,
     )
 

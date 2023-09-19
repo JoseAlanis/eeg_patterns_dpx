@@ -37,6 +37,7 @@ from utils import parse_overwrite
 subject = 1
 overwrite = False
 jobs = 1
+contrast = 'ax_bx'
 
 # %%
 # When not in an IPython session, get command line inputs
@@ -44,6 +45,7 @@ jobs = 1
 if not hasattr(sys, "ps1"):
     defaults = dict(
         subject=subject,
+        contrast=contrast,
         overwrite=overwrite,
         jobs=jobs
     )
@@ -51,6 +53,7 @@ if not hasattr(sys, "ps1"):
     defaults = parse_overwrite(defaults)
 
     subject = defaults["subject"]
+    contrast = defaults["contrast"]
     overwrite = defaults["overwrite"]
     jobs = defaults["jobs"]
 
@@ -78,16 +81,15 @@ if overwrite:
 # Here we use a Ridge regression classifier (i.e., least-squares with
 # Tikhonov regularisation)
 decoder = "lin-svm"
-cont = 'ax_bx'
-contrast = "cue_probe_combination == '%s' | cue_probe_combination == '%s'" % \
-           tuple(cont.upper().split('_'))
+conditions = ("cue_probe_combination == '%s' | cue_probe_combination == '%s'"
+              % tuple(contrast.upper().split('_')))
 
 # %%
 # run mvpa with chosen decoder
 
 # compute classification scores for participant
 logger.info('\n\nRun GAT for subject: %s\n\n' % subject)
-scores, predictions, patterns = run_gat(subject, contrast=contrast,
+scores, predictions, patterns = run_gat(subject, contrast=conditions,
                                         decoder=decoder, jobs=jobs)
 
 # %%
@@ -104,7 +106,7 @@ if not os.path.exists(FPATH_GAT):
 FPATH_SCORES = os.path.join(FPATH_GAT,
                             'sub-%s' % f'{subject:03}',
                             'sub-%s_gat_scores_%s_%s.npy'
-                            % (f'{subject:03}', decoder, cont)
+                            % (f'{subject:03}', decoder, contrast)
                             )
 
 # check if directory exists
@@ -121,7 +123,7 @@ np.save(FPATH_SCORES, scores)
 FPATH_PREDS = os.path.join(FPATH_GAT,
                            'sub-%s' % f'{subject:03}',
                            'sub-%s_gat_predictions_%s_%s.npy'
-                           % (f'{subject:03}', decoder, cont)
+                           % (f'{subject:03}', decoder, contrast)
                            )
 
 # save predictions
@@ -131,7 +133,7 @@ np.save(FPATH_PREDS, predictions)
 FPATH_PATTERNS = os.path.join(FPATH_GAT,
                               'sub-%s' % f'{subject:03}',
                               'sub-%s_gat_patterns_%s_%s.npy'
-                              % (f'{subject:03}', decoder, cont))
+                              % (f'{subject:03}', decoder, contrast))
 
 # save scores
 np.save(FPATH_PATTERNS, patterns)
