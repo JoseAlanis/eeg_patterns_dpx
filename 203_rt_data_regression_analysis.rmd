@@ -1,0 +1,634 @@
+---
+title: "DPX-EEG: LMM Analysis behavioural data"
+author: "José C. García Alanis"
+date:  "`r Sys.Date()`"
+output:
+html_document:
+theme: lumen
+highlight: pygments
+css: "styler.css"
+---
+
+Created with `r R.version.string`
+
+```{r, setup, include = FALSE}
+knitr::opts_chunk$set(class.source = "customCode",
+                      class.output = "customOutput",
+                      class.message = "customWarning")
+if (interactive()) {
+  path <- dirname(rstudioapi::getSourceEditorContext()$path)
+} else {
+  path <- normalizePath('./')
+}
+setwd(path)
+source('utils.R')
+```
+
+# 0) Load necessary packages:
+
+```{r}
+load.package(
+  c('rjson',
+    'dplyr',
+    'lme4', 'lmerTest', 'r2glmm', 'emmeans',
+    'performance', 'report', 'rempsyc', 'gt')
+)
+```
+
+# 1) Import the data
+
+```{r}
+paths <- fromJSON(file = 'paths.json')
+fpath_tables <- paste(paths$bids,
+                      'derivatives',
+                      'behavioural_analysis',
+                      'tables',
+                      sep = '/')
+
+# load subject data
+load(
+  paste(
+    paths$bids,
+    'derivatives',
+    'behavioural_analysis',
+    '00_subjects.RData',
+    sep = '/')
+)
+# load RT data
+load(
+  paste(
+    paths$bids,
+    'derivatives',
+    'behavioural_analysis',
+    '01_rt_data.RData',
+    sep = '/')
+)
+```
+
+# 2) RT data analysis
+
+Prepare data for analysis
+
+```{r correct-rt-data}
+# only keep sex and age variables
+subjects_data <- subjects_data %>%
+  ungroup() %>%
+  mutate(subject = factor(subject),
+         sex = factor(sex),
+         age = age - mean(age)) %>%
+  select(subject, sex, age)
+
+# create factors
+rt <- rt %>%
+  mutate(cue_probe = paste0(C, P)) %>%
+  mutate(cue_probe = factor(cue_probe,
+                            levels = c('AX', 'AY', 'BX', 'BY')),
+         cue = factor(C, levels = c('A', 'B')),
+         probe = factor(P, levels = c('Y', 'X')),
+         subject = factor(subjects)) %>%
+  left_join(., subjects_data, by = 'subject') %>%
+  group_by(subject, cue_probe) %>%
+  mutate(reaction = factor(reaction, levels = c('Correct', 'Incorrect'))) %>%
+  ungroup() %>%
+  select(subject, sex, age, cue, probe, cue_probe,
+         trial, run, rt, reaction, pre_error)
+save(rt,
+     file = paste(
+       paths$bids,
+       'derivatives',
+       'behavioural_analysis',
+       '02_RT_model_data.RData',
+       sep = '/')
+)
+
+# clean up
+rm(subjects_data)
+```
+
+## 2.1) Fit linear mixed-effects model to RT data
+
+```{r, fit behavioral LMM}
+options(width = 300)
+# fit LMM
+rt_mod <- lmer(data = rt,
+               log(rt) ~ age +
+                 sex +
+                 reaction * cue * probe +
+                 (cue * probe | subject:reaction),
+               contrasts = list(sex = 'contr.sum',
+                                reaction = 'contr.sum',
+                                cue = 'contr.sum',
+                                probe = 'contr.sum')
+)
+save(rt_mod,
+     file = paste(
+       paths$bids,
+       'derivatives',
+       'behavioural_analysis',
+       '02_RT_mod.RData',
+       sep = '/')
+)
+
+# save report
+rt_mod_table <- report_table(rt_mod,
+                             include_effectsize = FALSE,
+                             ci = 0.99); rt_mod_table
+save(rt_mod_table,
+     file = paste(
+       paths$bids,
+       'derivatives',
+       'behavioural_analysis',
+       '02_RT_mod_report.RData',
+       sep = '/')
+)
+rm(rt_mod_table)
+```
+
+## 2.2) Get anova table and model performance statistics (e.g., R-squared measures)
+
+```{r, model-performance}
+# get anova table
+aov_rt_mod <- anova(rt_mod); aov_rt_mod
+aov_rt_mod %>%
+apa(title = "ANOVA table RT-model", stub = T) %>%
+        fmt_number(columns = 2:7, decimals = 4) %>%
+        gtsave(paste(fpath_tables,
+                     'anova_RT_mod.html',
+                     sep = '/'),
+               inline_css = TRUE
+        )
+save(aov_rt_mod,
+     file = paste(paths$bids,
+                  'derivatives',
+                  'behavioural_analysis',
+                  '02_anova_RT_mod.RData',
+                  sep = '/'
+     )
+)
+```
+
+```{r}
+# compute semi-partial R2 (effect size) for each predictor by hand
+eff_sizes_rt_mod <-
+  ((aov_rt_mod$`NumDF` / aov_rt_mod$`DenDF`) * aov_rt_mod$`F value`) /
+    (1 + ((aov_rt_mod$`NumDF` / aov_rt_mod$`DenDF`) * aov_rt_mod$`F value`))
+names(eff_sizes_rt_mod) <- row.names(aov_rt_mod); eff_sizes_rt_mod
+save(eff_sizes_rt_mod,
+     file = paste(paths$bids,
+                  'derivatives',
+                  'behavioural_analysis',
+                  '02_eff_sizes_RT_mod.RData',
+                  sep = '/')
+)
+
+# # compute semi-partial R2 with r2glmm (computes CIs)
+# rt_mod_0 <- lmer(rt_data = rt,
+#                  log(rt) ~ age + sex + cue*probe + (reaction|subject))
+# r2beta_rt <- r2beta(rt_mod_0, method = 'kr', partial = T, rt_data = rt); r2beta_rt
+# save(r2beta_rt, file = "../rt_data/02_r2beta_RT_mod.RData")
+```
+
+
+```{r}
+# model performance
+rt_mod_rsq <- model_performance(rt_mod); rt_mod_rsq
+save(rt_mod_rsq,
+     file = paste(paths$bids,
+                  'derivatives',
+                  'behavioural_analysis',
+                  "02_rsq_RT_mod.RData",
+                  sep = '/')
+)
+rm(aov_rt_mod, eff_sizes_rt_mod, rt_mod_rsq)
+```
+
+## 2.3) Compute estimated marginal means
+
+Compute estimated marginal means for age
+
+```{r}
+age_rt <- emmeans(rt_mod, ~ age,
+                  at = list(age = c(low = -1 * sd(rt$age), high = sd(rt$age))),
+                  type = 'response',
+                  lmer.df = "satterthwaite",
+                  lmerTest.limit = nrow(rt),
+                  level = 0.99); age_rt
+save(age_rt,
+     file = paste(
+       paths$bids,
+       'derivatives',
+       'behavioural_analysis',
+       '02_age_rt_mod.RData',
+       sep = '/')
+)
+rm(age_rt)
+```
+
+Compute estimated marginal means for sex
+
+```{r}
+sex_rt <- emmeans(rt_mod, ~ sex,
+                  type = 'response',
+                  lmer.df = "satterthwaite",
+                  lmerTest.limit = nrow(rt),
+                  level = 0.99); sex_rt
+save(sex_rt,
+     file = paste(
+       paths$bids,
+       'derivatives',
+       'behavioural_analysis',
+       '02_sex_rt_mod.RData',
+       sep = '/')
+)
+rm(sex_rt)
+```
+
+Compute estimated marginal means for reaction
+
+```{r}
+reaction <- emmeans(rt_mod, ~ reaction,
+                    type = 'response',
+                    lmer.df = "satterthwaite",
+                    lmerTest.limit = nrow(rt),
+                    level = 0.99); reaction
+save(reaction,
+     file = paste(
+       paths$bids,
+       'derivatives',
+       'behavioural_analysis',
+       '02_reaction_RT_mod.RData',
+       sep = '/')
+)
+rm(reaction)
+```
+
+Compute estimated marginal means for cue
+
+```{r}
+cue <- emmeans(rt_mod, ~ cue,
+               type = 'response',
+               lmer.df = "satterthwaite",
+               lmerTest.limit = nrow(rt),
+               level = 0.99); cue
+save(cue,
+     file = paste(
+       paths$bids,
+       'derivatives',
+       'behavioural_analysis',
+       '02_cue_RT_mod.RData',
+       sep = '/')
+)
+rm(cue)
+```
+
+Compute estimated marginal means for probe
+
+```{r}
+probe <- emmeans(rt_mod, ~ probe,
+                 type = 'response',
+                 lmer.df = "satterthwaite",
+                 lmerTest.limit = nrow(rt),
+                 level = 0.99); probe
+save(probe,
+     file = paste(
+       paths$bids,
+       'derivatives',
+       'behavioural_analysis',
+       '02_probe_RT_mod.RData',
+       sep = '/')
+)
+rm(probe)
+```
+
+Compute estimated marginal means for cue * probe interaction
+
+```{r}
+# compute estimated marginal means for cue by probe interaction
+cue_by_probe <- emmeans(rt_mod, ~ cue * probe,
+                        type = 'response',
+                        lmer.df = "satterthwaite",
+                        lmerTest.limit = nrow(rt),
+                        level = 0.99); cue_by_probe
+save(cue_by_probe,
+     file = paste(
+       paths$bids,
+       'derivatives',
+       'behavioural_analysis',
+       '02_cue_by_probe_RT_mod.RData',
+       sep = '/')
+)
+rm(cue_by_probe)
+```
+
+Compute estimated marginal means for cue * probe * reaction interaction
+
+```{r}
+# compute estimated marginal means for full interaction
+interaction <- emmeans(rt_mod, ~ cue * probe * reaction,
+                       type = 'response',
+                       lmer.df = "satterthwaite",
+                       lmerTest.limit = nrow(rt),
+                       level = 0.99); interaction
+save(interaction,
+     file = paste(
+       paths$bids,
+       'derivatives',
+       'behavioural_analysis',
+       '02_interaction_RT_mod.RData',
+       sep = '/')
+)
+rm(interaction)
+```
+
+# 3) Accuracy data
+
+Prepare data for analysis
+
+```{r}
+# compute number of valid trials vailable per subject
+total <- rt %>%
+  group_by(subject, cue_probe) %>%
+  mutate(n_trials = sum(!is.na(rt))) %>%
+  select(subject, cue_probe, n_trials) %>%
+  arrange(subject, cue_probe) %>%
+  unique()
+
+# compute number of errors per condition
+errors <- rt %>%
+  filter(reaction == 'Incorrect') %>%
+  group_by(subject, cue_probe) %>%
+  mutate(n_errors = sum(!is.na(rt))) %>%
+  summarise(n_errors = mean(n_errors)) %>%
+  arrange(subject, cue_probe)
+
+# merge rt_data frames
+errors <- total %>%
+  left_join(., errors, by = c('subject', 'cue_probe'))
+# replace missing values with zeros
+errors[is.na(errors)] <- 0
+
+# log-linear correction for error rates equal to 0.0 or 1.0
+errors <- errors %>%
+  mutate(error_rate_adj =(n_errors+0.5)/(n_trials+1),
+         error_rate = ifelse(n_errors == 0, 0, n_errors/n_trials))
+
+# merge with subject rt_data
+subject_vars <- rt %>%
+  select(subject, cue_probe, cue, probe, sex, age) %>%
+  unique()
+errors <- errors %>%
+  left_join(., subject_vars, by = c('subject', 'cue_probe'))
+# save
+save(errors,
+     file = paste(
+       paths$bids,
+       'derivatives',
+       'behavioural_analysis',
+       '02_error_data.RData',
+       sep = '/')
+)
+```
+
+## 3.1) Fit linear mixed-effects model to errors data
+
+```{r, fit-accuracy-lmm}
+options(width = 300)
+# fit LMM
+errors_mod <- lmer(data = errors,
+                   log(error_rate_adj) ~ age + sex +
+                     cue * probe +
+                     (1 | subject),
+                   contrasts = list(sex = 'contr.sum',
+                                    cue = 'contr.sum',
+                                    probe = 'contr.sum'))
+save(errors_mod,
+     file = paste(
+       paths$bids,
+       'derivatives',
+       'behavioural_analysis',
+       '02_errors_mod.RData',
+       sep = '/')
+)
+
+# save report
+errors_mod_table <- report_table(
+  errors_mod,
+  include_effectsize = FALSE,
+  ci = 0.99); errors_mod_table
+save(errors_mod_table,
+     file = paste(
+       paths$bids,
+       'derivatives',
+       'behavioural_analysis',
+       '02_errors_mod_report.RData',
+       sep='/')
+)
+rm(errors_mod_table)
+```
+
+## 3.2) Get anova table and model performance statistics (e.g., R-squared measures)
+
+```{r, mod-errors-performance}
+# get anova table
+aov_errors_mod <- anova(errors_mod); aov_errors_mod
+aov_errors_mod %>%
+  apa(title = "ANOVA table error rates model", stub = T) %>%
+  fmt_number(columns = 2:7, decimals = 4) %>%
+  gtsave(
+    paste(fpath_tables, 'anova_ER_mod.html', sep = '/'),
+    inline_css = TRUE
+  )
+save(aov_errors_mod,
+     file = paste(
+       paths$bids,
+       'derivatives',
+       'behavioural_analysis',
+       '02_anova_errors_mod.RData',
+       sep = '/')
+)
+```
+
+```{r}
+# compute semi-partial R2 (effect size) for each predictor by hand
+eff_sizes_errors_mod <-
+  ((aov_errors_mod$`NumDF` / aov_errors_mod$`DenDF`) * aov_errors_mod$`F value`) /
+    (1 + ((aov_errors_mod$`NumDF` / aov_errors_mod$`DenDF`) * aov_errors_mod$`F value`))
+names(eff_sizes_errors_mod) <- row.names(aov_errors_mod); eff_sizes_errors_mod
+save(eff_sizes_errors_mod,
+     file = paste(
+       paths$bids,
+       'derivatives',
+       'behavioural_analysis',
+       '02_eff_sizes_errors_mod.RData',
+       sep = '/')
+)
+
+# model performance
+errors_mod_rsq <- model_performance(errors_mod); errors_mod_rsq
+save(errors_mod_rsq,
+     file = paste(
+       paths$bids,
+       'derivatives',
+       'behavioural_analysis',
+       '02_rsq_errors_mod.RData',
+       sep = '/')
+)
+rm(aov_errors_mod, eff_sizes_errors_mod, errors_mod_rsq)
+```
+
+## 3.3) Compute estimated marginal means
+
+Compute estimated marginal means for errors by participants' age
+
+```{r}
+age_error <- emmeans(errors_mod, ~ age,
+                     at = list(age = c(low = -1 * sd(errors$age), high = sd(errors$age))),
+                     type = 'response',
+                     lmer.df = "satterthwaite",
+                     lmerTest.limit = nrow(errors),
+                     level = 0.99); age_error
+save(age_error,
+     file = paste(
+       paths$bids,
+       'derivatives',
+       'behavioural_analysis',
+       '02_age_errors_mod.RData',
+       sep = '/')
+)
+rm(age_error)
+```
+
+Compute estimated marginal means for errors by participants' sex
+
+```{r}
+sex_error <- emmeans(errors_mod, ~ sex,
+                     type = 'response',
+                     lmer.df = "satterthwaite",
+                     lmerTest.limit = nrow(errors),
+                     level = 0.99); sex_error
+save(sex_error,
+     file = paste(
+       paths$bids,
+       'derivatives',
+       'behavioural_analysis',
+       '02_sex_errors_mod.RData',
+       sep = '/')
+)
+rm(sex_error)
+```
+
+Compute estimated marginal means for errors by cue stimulus
+
+```{r}
+cue_error <- emmeans(errors_mod, ~ cue,
+                     type = 'response',
+                     lmer.df = "satterthwaite",
+                     lmerTest.limit = nrow(errors),
+                     level = 0.99); cue_error
+save(cue_error,
+     file = paste(
+       paths$bids,
+       'derivatives',
+       'behavioural_analysis',
+       '02_cue_error_mod.RData',
+       sep = '/')
+)
+rm(cue_error)
+```
+
+Compute estimated marginal means for errors by probe stimulus
+
+```{r}
+probe_error <- emmeans(errors_mod, ~ probe,
+                       type = 'response',
+                       lmer.df = "satterthwaite",
+                       lmerTest.limit = nrow(errors),
+                       level = 0.99); probe_error
+save(probe_error,
+     file = paste(
+       paths$bids,
+       'derivatives',
+       'behavioural_analysis',
+       '02_probe_error_mod.RData',
+       sep = '/')
+)
+rm(probe_error)
+```
+
+Compute estimated marginal means for errors by cue * probe interaction
+
+```{r}
+cue_by_probe_errors <- emmeans(errors_mod, ~ cue * probe,
+                               type = 'response',
+                               lmer.df = "satterthwaite",
+                               lmerTest.limit = nrow(errors),
+                               level = 0.99); cue_by_probe_errors
+save(cue_by_probe_errors,
+     file = paste(
+       paths$bids,
+       'derivatives',
+       'behavioural_analysis',
+       '/02_cue_by_probe_error_mod.RData',
+       sep = '/')
+)
+rm(cue_by_probe_errors)
+```
+
+# 4) Compute A-cue bias
+```{r}
+a_bias <- errors %>%
+  mutate(correct_rate = 1 - error_rate_adj) %>%
+  filter(cue_probe == 'AX' | cue_probe == 'AY') %>%
+  group_by(subject) %>%
+  mutate(a_bias = ifelse(cue_probe == 'AX',
+                         0.5 * (qnorm(correct_rate) + qnorm(lead(error_rate_adj))),
+                         NA)) %>%
+  select(subject, a_bias) %>%
+  filter(!is.na(a_bias)) %>%
+  ungroup()
+```
+
+# 4) Compute d' context
+```{r}
+d_context <- errors %>%
+  mutate(correct_rate = 1 - error_rate_adj) %>%
+  filter(cue_probe == 'AX' | cue_probe == 'BX') %>%
+  group_by(subject) %>%
+  mutate(d_context = ifelse(cue_probe == 'AX',
+                            (qnorm(correct_rate) + qnorm(lead(error_rate_adj))),
+                            NA)) %>%
+  select(subject, d_context) %>%
+  filter(!is.na(d_context)) %>%
+  ungroup()
+```
+
+```{r}
+# test correlation of performance indices
+perform_index <- left_join(a_bias, d_context, by = 'subject')
+correlation::correlation(data = perform_index, ci = .99)
+
+# center indices around zero
+a_bias <- a_bias %>%
+  mutate(a_bias = a_bias - mean(a_bias))
+
+d_context <- d_context %>%
+  mutate(d_context = d_context - mean(d_context))
+
+# save performance indices
+write.table(d_context,
+            file = paste(
+              paths$bids,
+              'derivatives',
+              'behavioural_analysis',
+              '02_d_context.tsv',
+              sep = '/'),
+            sep = '\t')
+write.table(a_bias,
+            file = paste(
+              paths$bids,
+              'derivatives',
+              'behavioural_analysis',
+              '02_a_bias.tsv',
+              sep = '/'),
+            sep = '\t')
+```

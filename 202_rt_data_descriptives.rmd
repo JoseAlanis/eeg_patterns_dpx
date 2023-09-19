@@ -1,0 +1,173 @@
+---
+title: "DPX-EEG: Descriptive analysis behavioural data"
+author: "José C. García Alanis"
+date:  "`r Sys.Date()`"
+output:
+html_document:
+theme: lumen
+highlight: pygments
+css: "styler.css"
+---
+
+Created with `r R.version.string`
+```{r, setup, include = FALSE}
+knitr::opts_chunk$set(class.source = "customCode",
+                      class.output = "customOutput",
+                      class.message = "customWarning")
+if(interactive()){
+  path <- dirname(rstudioapi::getSourceEditorContext()$path)
+} else {
+  path <- normalizePath('./')
+}
+setwd(path)
+source('utils.R')
+```
+
+# 0) Load necessary packages:
+
+```{r}
+load.package(c('rjson', 'dplyr', 'stringr', 'psych', 'gt', 'papaja'))
+```
+
+# 1) Import behavioural data
+
+```{r}
+paths <- fromJSON(file = 'paths.json')
+fpath_tables <- paste(paths$bids,
+                      'derivatives',
+                      'behavioural_analysis',
+                      'tables',
+                      sep = '/')
+
+load(
+  paste(paths$bids,
+        'derivatives',
+        'behavioural_analysis',
+        'RT.RData',
+        sep = '/')
+)
+```
+
+# 2) Restructure RT data frame
+
+```{r}
+# compute all meaningful variables (i.e, cue, probe, response/reaction, and wheather
+# reponse was preceded/precedes an error)
+rt <- rt_df %>%
+  mutate(R =
+           ifelse(cue_probe_combination == "AX" & reaction_probe == "Correct", "L",
+                  ifelse(cue_probe_combination != "AX" & reaction_probe == "Correct", "R",
+                         ifelse(cue_probe_combination != "AX" & reaction_probe == "Incorrect", "L",
+                                ifelse(cue_probe_combination == "AX" & reaction_probe == "Incorrect", "R", NA
+                                )
+                         )
+                  )
+           )
+  ) %>%
+  # mutate(probe = str_sub(probe, -1)) %>%
+  mutate(reaction_cues = factor(reaction_cue),
+         reaction_probes = factor(reaction_probe)) %>%
+  mutate(C = factor(cue),
+         P = factor(probe),
+         R = factor(R),
+         subjects = factor(subject)) %>%
+  mutate(cue_probe = paste0(C, P)) %>%
+  mutate(cue_probe = factor(cue_probe, levels = c('AX', 'AY', 'BX', 'BY')),
+         cue = factor(C, levels = c('A', 'B')),
+         probe = factor(P, levels = c('Y', 'X')),
+         subject = factor(subjects)) %>%
+  mutate(reaction = ifelse(cue_probe == 'AX' & R == 'L', 'Correct',
+                           ifelse(cue_probe == 'AX' & R == 'R', 'Incorrect',
+                                  ifelse(cue_probe != 'AX' & R == 'R', 'Correct',
+                                         ifelse(cue_probe != 'AX' & R == 'L', 'Incorrect', NA))))) %>%
+  mutate(reaction = ifelse(is.na(reaction), 'Missing', reaction)) %>%
+  mutate(pre_error =
+           ifelse(lead(reaction, 3) == 'Incorrect', -3,
+                  ifelse(lead(reaction, 2) == 'Incorrect', -2,
+                         ifelse(lead(reaction, 1) == 'Incorrect', -1,
+                                ifelse(reaction == 'Incorrect',  0,
+                                       ifelse(lag(reaction, 1) == 'Incorrect', 1,
+                                              ifelse(lag(reaction, 2) == 'Incorrect', 2,
+                                                     ifelse(lag(reaction, 3) == 'Incorrect', 3, NA)))))))
+  )
+```
+
+# 3) Exclude too-slow and too-fast responses
+
+```{r}
+# remove bad trial (too fast, too slow, and missing respose times)
+rt <- rt %>%
+  filter(rt >= 0.1 & rt <= 1.0) %>%
+  filter(cue_probe %in% c("AX", "AY", "BX", "BY")) %>%
+  filter(reaction %in% c('Correct', 'Incorrect')) %>%
+  # group_by(cue_probe, reaction) %>%
+  # mutate(raw_rt = rt) %>%
+  # mutate(rt = winsor(rt, 0.005)) %>%
+  mutate(probe = str_sub(probe, -1)) %>%
+  mutate(reaction_cues = factor(reaction_cues),
+         reaction_probes = factor(reaction_probes)) %>%
+  mutate(C = factor(cue),
+         P = factor(probe),
+         R = factor(R),
+         subjects = factor(subject)) %>%
+  # ungroup() %>%
+  select(subjects, trial, run, C, P, R, rt, reaction, pre_error)
+```
+
+# 4) Compute descriptive statistics
+
+```{r}
+# save mean age and SD for level of cue-probe combination
+trial_type_means <- rt %>%
+  group_by(C, P, R) %>%
+  summarise(`Mean RT` = mean(rt),
+            SD = sd(rt),
+            `Med. RT` = median(rt),
+            `Max. RT` = max(rt),
+            `Min. RT` = min(rt)); trial_type_means
+trial_type_means %>%
+  apa(stub = F) %>%
+  tab_header(
+    title = md(
+      "<b>Table S3</b>
+      <br><br><em>Mean RT and SD by Cue, Probe, and Reaction</em>"
+    )
+  ) %>%
+  tab_options(table.width = pct(80)) %>%
+  cols_label(
+    R = 'Reaction'
+  ) %>%
+  fmt_number(
+    columns = c(`Mean RT`, SD, `Med. RT`, `Max. RT`, `Min. RT`),
+    decimals = 3,
+    use_seps = FALSE
+  ) %>%
+  tab_footnote(
+    footnote = "L = correct response AX (incorrect for AY, BX, BY)",
+    locations = cells_body(
+      columns = R,
+      rows = 1)
+  ) %>%
+  tab_footnote(
+    footnote = "R = incorrect response AX (correct for AY, BX, BY)",
+    locations = cells_body(
+      columns = R,
+      rows = 2)) %>%
+  gtsave(
+    paste(fpath_tables,
+          'TS3_RT_means.html',
+          sep = '/'
+    )
+  )
+
+# save rt data for analyses
+rt <- rt %>% ungroup()
+save(rt,
+     file = paste(
+       paths$bids,
+       'derivatives',
+       'behavioural_analysis',
+       '01_rt_data.RData',
+       sep = '/')
+)
+```
