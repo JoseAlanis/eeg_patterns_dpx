@@ -10,3 +10,7 @@ jobs/
 # files specific to workstation
 paths.json
 anonym.json
+
+# bash files
+master.sh
+slave.sh
