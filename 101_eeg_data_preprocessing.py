@@ -22,6 +22,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from mne import events_from_annotations, concatenate_raws, Report
+from mne.filter import notch_filter
 from mne.preprocessing import ICA
 from mne.utils import logger
 
@@ -32,7 +33,8 @@ from config import (
     FPATH_DERIVATIVES,
     MISSING_FPATH_BIDS_MSG,
     SUBJECT_IDS,
-    event_id
+    event_id,
+    noisy_channels
 )
 
 from utils import parse_overwrite
@@ -93,20 +95,31 @@ if not os.path.exists(FNAME):
 raw = read_raw_bids(FNAME)
 raw.load_data()
 
+bad_recording = noisy_channels[subject]
+if bad_recording == 'all':
+    logger.info("Subject %s is bad, skipping." % subject)
+    sys.exit()
+raw.info['bads'] = bad_recording
+raw.interpolate_bads(mode='accurate')
+raw.set_eeg_reference('average')
+
 # get sampling rate
 sfreq = raw.info['sfreq']
 
-# get montage
-montage = raw.get_montage()
+# remove line noise
+line_freq = [50.0, 100.0]
+raw._data = notch_filter(raw.get_data(),
+                         Fs=sfreq,
+                         freqs=line_freq,
+                         method="spectrum_fit",
+                         mt_bandwidth=2,
+                         p_value=0.05,
+                         filter_length="10s",
+                         n_jobs=jobs)
 
-# deactivate sensor 'FT8', 'F7', for subject 2 (bad quality during recording)
-if subject == 2:
-    raw.info['bads'] = ['FT8', 'F7']
-    raw.interpolate_bads(mode='accurate')
-# deactivate sensor 'AF7' for subject 36 (bad quality during recording)
-elif subject == 36:
-    raw.info['bads'] = ['AF7']
-    raw.interpolate_bads(mode='accurate')
+# fig, ax = plt.subplots(1,1)
+# raw.compute_psd(n_jobs=jobs).plot(axes=ax)
+# ax.set_title('Subejct %s' % subject)
 
 # %%
 # extract relevant parts of the recording
@@ -173,7 +186,7 @@ del raw, raw_bl1, raw_bl2
 # make a copy of the data in question
 raw_copy = raw_bl.copy()
 
-# apply an 80Hz low-pass filter to data
+# apply a 100Hz low-pass filter to data
 raw_copy = raw_copy.filter(l_freq=None, h_freq=100.0,
                            picks=['eeg', 'eog'],
                            filter_length='auto',
@@ -203,7 +216,7 @@ raw_bl.interpolate_bads(mode='accurate')
 # prepare ICA
 
 # set eeg reference
-raw_bl = raw_bl.set_eeg_reference('average')
+# raw_bl = raw_bl.set_eeg_reference('average')
 
 # set ICA parameters
 method = 'infomax'
