@@ -149,8 +149,6 @@ events = events[keep_evs]
 
 # %%
 # 4) export to bids
-
-# create bids path
 output_path = BIDSPath(subject=f'{subject:03}',
                        task='dpx',
                        datatype='eeg',
@@ -167,15 +165,24 @@ write_raw_bids(raw,
 
 # %%
 if report:
-    bidsdata_report = Report(title='Subject %s' % f'{subject:03}')
-    bidsdata_report.add_raw(raw=raw, title='Raw data',
-                            butterfly=False,
-                            replace=True,
-                            psd=True)
 
-    FPATH_REPORT = os.path.join(FPATH_DERIVATIVES,
-                                'report',
-                                'sub-%s' % f'{subject:03}')
+    bidsdata_report = Report(
+        title='Subject %s' % f'{subject:03}'
+    )
+
+    bidsdata_report.add_raw(
+        raw=raw,
+        title='Raw data',
+        butterfly=False,
+        replace=True,
+        psd=True
+    )
+
+    FPATH_REPORT = os.path.join(
+        FPATH_DERIVATIVES,
+        'report',
+        'sub-%s' % f'{subject:03}'
+    )
 
     if not Path(FPATH_REPORT).exists():
         Path(FPATH_REPORT).mkdir(parents=True, exist_ok=True)
@@ -186,8 +193,11 @@ if report:
     for rep_ext in ['hdf5', 'html']:
         FPATH_REPORT_O = os.path.join(
             FPATH_REPORT,
-            'Subj_%s_preprocessing_report.%s' % (f'{subject:03}', rep_ext))
+            'Subj_%s_preprocessing_report.%s'
+            % (f'{subject:03}', rep_ext)
+        )
 
-        bidsdata_report.save(FPATH_REPORT_O,
-                             overwrite=overwrite,
-                             open_browser=False)
+        bidsdata_report.save(
+            FPATH_REPORT_O,
+            overwrite=overwrite,
+            open_browser=False)
