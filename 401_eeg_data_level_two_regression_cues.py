@@ -241,7 +241,7 @@ fig.savefig('../results/figures/ttest_cues_tvals_%s.png' % method,
 fig = plot_contrast_sensor(cue_contrast_t,
                            lower_b=l_tval, upper_b=u_tval,
                            sig_mask=sig_mask,
-                           sensors=['Fz', 'FCz', 'Pz', 'PO8'],
+                           sensors=['FC1', 'FC2', 'Pz', 'PO8'],
                            xlim=[-0.25, 2.50],
                            ylim=[-15, 15],
                            figsize=(5.5, 10.5),
@@ -276,7 +276,7 @@ a_bias_effect = EvokedArray(
 # extract random subjects from overall sample
 a_bias_boot = np.zeros((boot, n_channels * n_times))
 random = np.random.RandomState(42)
-for i in range(0, 599):
+for i in range(0, 2000):
     boot_samples = random.choice(
         range(betas.shape[0]), betas.shape[0], replace=True)
 
@@ -323,7 +323,7 @@ fig.savefig('../results/figures/a_bias_cue_evoked.png', dpi=300)
 fig = plot_contrast_sensor(a_bias_effect,
                            lower_b=l_tval, upper_b=u_tval,
                            sig_mask=None,
-                           sensors=['Pz', 'P5'],
+                           sensors=['PO3', 'AF4'],
                            xlim=[-0.25, 2.5],
                            ylim=[-3, 3],
                            ylabel=r'$\beta$ ($\mu$V)',
@@ -360,7 +360,7 @@ d_context_effect = EvokedArray(
 # extract random subjects from overall sample
 d_context_boot = np.zeros((boot, n_channels * n_times))
 random = np.random.RandomState(42)
-for i in range(0, boot):
+for i in range(0, 2000):
     boot_samples = random.choice(
         range(betas.shape[0]), betas.shape[0], replace=True)
 
@@ -404,7 +404,7 @@ fig.savefig('../results/figures/d_context_cue_evoked.png', dpi=300)
 fig = plot_contrast_sensor(d_context_effect,
                            lower_b=l_tval, upper_b=u_tval,
                            sig_mask=None,
-                           sensors=['FCz', 'CP2'],
+                           sensors=['FCz', 'P6'],
                            xlim=[-0.25, 2.5],
                            ylim=[-3, 3],
                            ylabel=r'$\beta$ ($\mu$V)',

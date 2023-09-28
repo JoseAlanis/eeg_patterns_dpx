@@ -183,10 +183,10 @@ else:
     boot_tvals = np.load(boot_path)
 
 # lower threshold
-l_tval = np.quantile(boot_tvals, axis=0, q=0.05 / 2)
+l_tval = np.quantile(boot_tvals, axis=0, q=0.01 / 2)
 l_tval = l_tval.reshape((n_channels, n_times))
 # upper threshold
-u_tval = np.quantile(boot_tvals, axis=0, q=1 - 0.05 / 2)
+u_tval = np.quantile(boot_tvals, axis=0, q=1 - 0.01 / 2)
 u_tval = u_tval.reshape((n_channels, n_times))
 
 # run bootstrap to control for multiple comparisons (FWE)
@@ -259,7 +259,7 @@ fig = plot_contrast_sensor(ay_ax_contrast_t,
                            lower_b=l_tval,
                            upper_b=u_tval,
                            sig_mask=sig_mask,
-                           sensors=['FCz', 'CP4', 'P6'],
+                           sensors=['FCz', 'CP4', 'P4'],
                            xlim=[-0.25, 1.0],
                            ylim=[-13, 13],
                            figsize=(5, 8.0),
@@ -337,7 +337,7 @@ fig.savefig('../results/figures/a_bias_probe_evoked.png', dpi=300)
 fig = plot_contrast_sensor(a_bias_effect,
                            lower_b=l_tval, upper_b=u_tval,
                            sig_mask=None,
-                           sensors=['F4', 'Pz'],
+                           sensors=['CPz', 'Pz'],
                            xlim=[-0.25, 1.0],
                            ylim=[-3, 3],
                            ylabel=r'$\beta$ ($\mu$V)',

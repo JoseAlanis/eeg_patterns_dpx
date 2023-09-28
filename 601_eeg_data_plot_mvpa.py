@@ -77,7 +77,7 @@ if overwrite:
 # choose decoder
 decoder = 'lin-svm'
 # condition
-cue = False
+cue = True
 contrast = ('_ax_bx' if cue else '_ax_ay')
 
 # create path for GAT scores
@@ -180,7 +180,7 @@ else:
 # classifier performance for specific time slices of interest
 if cue:
     test_times = {'[1]  180 - 190  ms': [0.18, 0.19],
-                  '[2]  550 - 650  ms': [0.55, 0.65],
+                  '[2]  550 - 650  ms': [0.53, 0.63],
                   '[3] 1000 - 1100 ms': [1.0, 1.1]}
 else:
     test_times = {'[1] 2700 - 2800 ms': [2.7, 2.8],
