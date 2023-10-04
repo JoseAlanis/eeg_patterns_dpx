@@ -15,8 +15,6 @@ import sys
 import os
 import glob
 
-import json
-
 import matplotlib.pyplot as plt
 
 import numpy as np
@@ -232,87 +230,24 @@ sig_mask = (t_vals.reshape((n_channels, n_times)) ** 2) >= sig_threshold
 
 # plot mass-univariate results
 fig = plot_contrast_tvals(cue_contrast_t,
-                          times=[0.218, 0.640, 1.180, 1.365],
+                          times=[0.210, 0.640, 1.180, 1.365],
                           mask=sig_mask,
                           xlim=[-0.25, 2.50],
                           clim=[-12, 12])
-cue_contrast_fig_path = os.path.join(
-    FPATH_DERIVATIVES, 'limo', 'ttest_cues_tvals_%s.png' % method
-)
-fig.savefig(cue_contrast_fig_path, dpi=600)
-
-# %%
-# get peaks
-early_positive = cue_contrast_t.get_peak(
-    tmin=0.150, tmax=0.300, mode='pos', return_amplitude=True
-)
-early_negative = cue_contrast_t.get_peak(
-    tmin=0.150, tmax=0.300, mode='neg', return_amplitude=True
-)
-
-midrange_positive = cue_contrast_t.get_peak(
-    tmin=0.300, tmax=0.700, mode='pos', return_amplitude=True
-)
-midrange_negative = cue_contrast_t.get_peak(
-    tmin=0.300, tmax=0.700, mode='neg', return_amplitude=True
-)
-
-late_positive = cue_contrast_t.get_peak(
-    tmin=1.000, tmax=1.200, mode='pos', return_amplitude=True
-)
-late_negative = cue_contrast_t.get_peak(
-    tmin=1.000, tmax=1.200, mode='neg', return_amplitude=True
-)
-
-later_positive = cue_contrast_t.get_peak(
-    tmin=1.200, tmax=2.400, mode='pos', return_amplitude=True
-)
-later_negative = cue_contrast_t.get_peak(
-    tmin=1.200, tmax=2.400, mode='neg', return_amplitude=True
-)
-# store in dictionary
-cue_effects = {
-    'early':
-        {'positive': early_positive,
-         'negative': early_negative},
-    'midrange':
-        {'positive': midrange_positive,
-         'negative': midrange_negative},
-    'late':
-        {'positive': late_positive,
-         'negative': late_negative},
-    'later':
-        {'positive': later_positive,
-         'negative': later_negative}
-}
-
-# save cluster peaks
-cue_contrast_peaks_path = os.path.join(
-    FPATH_DERIVATIVES, 'limo', 'ttest_cues_peaks_%s.json' % method
-)
-with open(cue_contrast_peaks_path, 'w') as fp:
-    json.dump(cue_effects, fp)
+fig.savefig('../results/figures/ttest_cues_tvals_%s.png' % method,
+            dpi=600)
 
 # plot exemplary sensors
-sensors = [
-    cue_effects['early']['negative'][0],
-    cue_effects['midrange']['positive'][0],
-    cue_effects['late']['negative'][0]
-]
 fig = plot_contrast_sensor(cue_contrast_t,
                            lower_b=l_tval, upper_b=u_tval,
                            sig_mask=sig_mask,
-                           sensors=sensors,
+                           sensors=['Fz', 'FCz', 'Pz', 'PO8'],
                            xlim=[-0.25, 2.50],
                            ylim=[-15, 15],
                            figsize=(5.5, 10.5),
-                           panel_letters=['d', 'e', 'f'])
-cue_contrast_sensors_path = os.path.join(
-    FPATH_DERIVATIVES, 'limo', 'ttest_cues_sensors_%s.png' % method
-)
-fig.savefig(cue_contrast_sensors_path, dpi=600)
-
-
+                           panel_letters=['d', 'e', 'f', 'g'])
+fig.savefig('../results/figures/ttest_cues_sensors_%s.png' % method,
+            dpi=600)
 
 # %%
 # test effect of behavioural a-cue bias on the amplitude response evoked

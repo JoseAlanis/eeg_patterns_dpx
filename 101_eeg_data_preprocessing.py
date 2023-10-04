@@ -239,7 +239,7 @@ ic_labels = label_components(raw_4_ica, ica, method="iclabel")
 
 labels = ic_labels["labels"]
 exclude_idx = [idx for idx, label in
-               enumerate(labels) if label not in ["brain", "other"]]
+               enumerate(labels) if label not in ["brain"]]
 
 logger.info(f"Excluding these ICA components: {exclude_idx}")
 
@@ -252,7 +252,7 @@ del raw_4_ica
 
 # %%
 # apply filter to data
-raw_bl = raw_bl.filter(l_freq=0.05, h_freq=40.0,
+raw_bl = raw_bl.filter(l_freq=0.01, h_freq=30.0,
                        picks=['eeg', 'eog'],
                        filter_length='auto',
                        l_trans_bandwidth='auto',
