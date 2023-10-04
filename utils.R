@@ -99,7 +99,7 @@ apa <- function(x, title = " ", stub = T) {
 #'        Default is FALSE.
 #'
 #' @return A character string of the formatted value.
-format.value <- function(value, nsmall = 3, simplify = FALSE) {
+format.value <- function(value, nsmall = 3, simplify = TRUE) {
 
   if (abs(value) < 0.001) {
     print_value <- '< 0.001'

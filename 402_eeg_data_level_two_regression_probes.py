@@ -14,6 +14,8 @@ import sys
 import os
 import glob
 
+import json
+
 import matplotlib.pyplot as plt
 import matplotlib.transforms as mtransforms
 
@@ -79,13 +81,13 @@ if not os.path.exists(FPATH_DERIVATIVES):
 if overwrite:
     logger.info("`overwrite` is set to ``True`` ")
 
-
 # create path for beta coefficients
 FPATH_BETAS = os.path.join(FPATH_DERIVATIVES,
                            'limo',
                            'sub-*',
                            'sub-*_betas_probes.npy')
 FPATH_BETAS = glob.glob(FPATH_BETAS)
+FPATH_BETAS.sort()
 
 # %%
 # load subject level results
@@ -129,24 +131,29 @@ for sub in range(betas.shape[0]):
     BX_coef[sub, :] = betas[sub, 2, :].reshape(eeg_shape)
     BY_coef[sub, :] = betas[sub, 3, :].reshape(eeg_shape)
 
+# %%
+# predictors
+preds = {'AX': 0, 'AY': 1, 'BX': 2, 'BY': 3}
+
 # condition of interest
-pred_0 = 0
-pred_1 = 1
+pred_0 = 'BX'
+pred_1 = 'BY'
 
 # condiotions for analysis
-probe_ax_coef = betas[:, pred_0, :]
-probe_ay_coef = betas[:, pred_1, :]
+probe_0_coef = betas[:, preds[pred_0], :]
+probe_1_coef = betas[:, preds[pred_1], :]
 
 # compute observed t-values for Cue AY - Cue AX contrast
 MI = ModelInference()
-MI.paired_ttest(data_one=betas[:, pred_1, :], data_two=betas[:, pred_0, :],
+MI.paired_ttest(data_one=probe_1_coef,
+                data_two=probe_0_coef,
                 adjacency=None)
 
 # extract test-values
 t_vals = MI.t_vals_.copy()
 
 # put them in mne.Evoked format
-ay_ax_contrast_t = EvokedArray(t_vals.copy().reshape((n_channels, n_times)),
+preds_contrast_t = EvokedArray(t_vals.copy().reshape((n_channels, n_times)),
                                probe_epo.info, tmin)
 
 # %%
@@ -155,25 +162,14 @@ ay_ax_contrast_t = EvokedArray(t_vals.copy().reshape((n_channels, n_times)),
 # number of samples
 boot = 2000
 
-# compute CIs
-if pred_1 == 1 and pred_0 == 0:
-    probe_contr = 'ay_ax'
-elif pred_1 == 2 and pred_0 == 0:
-    probe_contr = 'bx_ax'
-elif pred_1 == 3 and pred_0 == 0:
-    probe_contr = 'by_ax'
-elif pred_1 == 3 and pred_0 == 2:
-    probe_contr = 'by_bx'
-elif pred_1 == 1 and pred_0 == 2:
-    probe_contr = 'ay_bx'
-
 # make path
+probe_contr = pred_1 + '_' + pred_0
 boot_path = os.path.join(
     FPATH_DERIVATIVES, 'limo', 'boottvals_contrast_probes_%s.npy' % probe_contr
 )
 if not os.path.isfile(boot_path):
-    boot_tvals = bootstrap_ttest(data_one=probe_ay_coef,
-                                 data_two=probe_ax_coef,
+    boot_tvals = bootstrap_ttest(data_one=probe_1_coef,
+                                 data_two=probe_0_coef,
                                  nboot=boot,
                                  multcomp=False,
                                  random=True,
@@ -183,10 +179,10 @@ else:
     boot_tvals = np.load(boot_path)
 
 # lower threshold
-l_tval = np.quantile(boot_tvals, axis=0, q=0.05 / 2)
+l_tval = np.quantile(boot_tvals, axis=0, q=0.01 / 2)
 l_tval = l_tval.reshape((n_channels, n_times))
 # upper threshold
-u_tval = np.quantile(boot_tvals, axis=0, q=1 - 0.05 / 2)
+u_tval = np.quantile(boot_tvals, axis=0, q=1 - 0.01 / 2)
 u_tval = u_tval.reshape((n_channels, n_times))
 
 # run bootstrap to control for multiple comparisons (FWE)
@@ -197,8 +193,8 @@ fmax_path = os.path.join(
                                % (probe_contr, method)
 )
 if not os.path.isfile(fmax_path):
-    f_max = bootstrap_ttest(data_one=probe_ay_coef,
-                            data_two=probe_ax_coef,
+    f_max = bootstrap_ttest(data_one=probe_1_coef,
+                            data_two=probe_0_coef,
                             nboot=boot,
                             multcomp=method,
                             jobs=jobs)
@@ -242,27 +238,73 @@ sig_mask = sig_mask > sig_threshold
 # plot results of second level analysis
 
 # plot mass-univariate results
-fig = plot_contrast_tvals(ay_ax_contrast_t,
-                          figsize=(5.0, 5.0),
-                          times=[0.20, 0.36, 0.55],
+fig = plot_contrast_tvals(preds_contrast_t,
+                          figsize=(5.5, 5.0),
+                          times=[0.155, 0.270, 0.61],
                           mask=sig_mask,
                           xlim=[-0.25, 1.00],
                           clim=[-12, 12])
-fname_fig = '../results/figures/ttest_probes_%s_tvals_%s.png' % (probe_contr,
-                                                                 method)
-fig.savefig(fname_fig, dpi=600)
+probe_contrast_fig_path = os.path.join(
+    FPATH_DERIVATIVES, 'limo', 'ttest_probes_%s_tvals_%s.png'
+                               % (probe_contr, method)
+)
+fig.savefig(probe_contrast_fig_path, dpi=600)
+
+# %%
+# get peaks
+early_positive = preds_contrast_t.get_peak(
+    tmin=0.150, tmax=0.250, mode='pos', return_amplitude=True
+)
+early_negative = preds_contrast_t.get_peak(
+    tmin=0.150, tmax=0.250, mode='neg', return_amplitude=True
+)
+
+midrange_positive = preds_contrast_t.get_peak(
+    tmin=0.250, tmax=0.450, mode='pos', return_amplitude=True
+)
+midrange_negative = preds_contrast_t.get_peak(
+    tmin=0.250, tmax=0.450, mode='neg', return_amplitude=True
+)
+
+late_positive = preds_contrast_t.get_peak(
+    tmin=0.500, tmax=0.750, mode='pos', return_amplitude=True
+)
+late_negative = preds_contrast_t.get_peak(
+    tmin=0.500, tmax=0.750, mode='neg', return_amplitude=True
+)
+
+# store in dictionary
+probe_effects = {
+    'early':
+        {'positive': early_positive,
+         'negative': early_negative},
+    'midrange':
+        {'positive': midrange_positive,
+         'negative': midrange_negative},
+    'late':
+        {'positive': late_positive,
+         'negative': late_negative},
+}
+
+# save cluster peaks
+probe_contrast_peaks_path = os.path.join(
+    FPATH_DERIVATIVES, 'limo', 'ttest_probes_%s_peaks_%s.json'
+                               % (probe_contr, method)
+)
+with open(probe_contrast_peaks_path, 'w') as fp:
+    json.dump(probe_effects, fp)
 
 # plot exemplary sensors
 label = probe_contr.upper().split('_')
 label = label[0] + ' - ' + label[1]
-fig = plot_contrast_sensor(ay_ax_contrast_t,
+fig = plot_contrast_sensor(preds_contrast_t,
                            lower_b=l_tval,
                            upper_b=u_tval,
                            sig_mask=sig_mask,
                            sensors=['FCz', 'CP4', 'P6'],
                            xlim=[-0.25, 1.0],
                            ylim=[-13, 13],
-                           figsize=(5, 8.0),
+                           figsize=(5.5, 10.5),
                            legend_fontsize='small',
                            panel_letters=['f', 'g', 'h'],
                            label=label)

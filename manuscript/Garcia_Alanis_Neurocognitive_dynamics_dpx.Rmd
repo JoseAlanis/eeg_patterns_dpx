@@ -1,0 +1,198 @@
+---
+title             : "Neurocognitive dynamics of preparatory and adaptive cognitive control: Insights from Mass-univariate and multivariate pattern analysis of EEG data"
+shorttitle        : "Neurocognitive dynamics of preparatory and adaptive cognitive control:"
+
+author: 
+  - name          : "José C. García Alanis"
+    affiliation   : "1"
+    corresponding : yes    # Define only one corresponding author
+    address       : "Postal address"
+    email         : "jose.alanis@uni-marburg.de"
+    role: # Contributorship roles (e.g., CRediT, https://credit.niso.org/)
+      - "Conceptualization"
+      - "Writing - Original Draft Preparation"
+      - "Writing - Review & Editing"
+  - name          : "Malte R. Güth"
+    affiliation   : "1,2"
+    role:
+      - "Writing - Review & Editing"
+      - "Supervision"
+
+affiliation:
+  - id            : "1"
+    institution   : "Philipps-Universität Marburg"
+  - id            : "2"
+    institution   : "CMBN Rutgers"
+
+authornote: |
+  Add complete departmental affiliations for each author here. Each new line herein must be indented, like this line.
+
+  Enter author note here.
+
+abstract: |
+  Cognitive control encompasses a set of basic perceptual and reasoning processes that help us align thoughts and actions with goals. While a growing body of research indicates that these processes can be independently engaged and tuned to fit different tasks (e.g., behavioural preparation vs behavioural adaptation), the dynamic interplay of these processes and their functional timing within the information stream, remains elusive. In this study, we used a combination of mass-univariate and multivariate pattern analysis to examine electroencephalography data from 52 participants, recorded during performance of the Dot Pattern Expectancy Task (DPX), a task designed to assess both preparatory and adaptive cognitive control. Contrary to the notion of isolated neural signatures for either cognitive control mode, our data indicates that cognitive control engages a sequence of distinct yet partially overlapping brain activation patterns. Preparatory cue-stimuli evoked early transient occipital-parietal amplitude responses that were followed by enhanced sustained central-parietal and fronto-central amplitude responses. Similarly, adaptive probe-stimuli evoked enhanced early transient occipital-parietal amplitude responses, but these were followed by enhanced transient, fronto-central and central parietal amplitude responses. Moreover, we found significant relationships between the magnitude of the central-parietal and fronto-central amplitude response pattern and behavioural performance in the DPX. This research not only extends prior work but also offers valuable insights into the functional timing and organisation of the neurocognitive processes underpinning both preparatory and adaptive cognitive control.
+  
+  <!-- https://tinyurl.com/ybremelq -->
+  
+keywords          : "keywords"
+wordcount         : "X"
+
+bibliography      : "r-references.bib"
+
+floatsintext      : no
+linenumbers       : yes
+draft             : no
+mask              : no
+
+figurelist        : no
+tablelist         : no
+footnotelist      : no
+
+classoption       : "doc"
+output            : papaja::apa6_pdf
+---
+
+```{r setup, include = FALSE}
+library("papaja")
+library("rjson")
+library("cowplot")
+source("../utils.R")
+r_refs("r-references.bib")
+```
+
+```{r analysis-preferences}
+# Seed for random number generation
+set.seed(42)
+knitr::opts_chunk$set(cache.extra = knitr::rand_seed)
+```
+
+# Methods
+We report how we determined our sample size, all data exclusions (if any), all manipulations, and all measures in the study. <!-- 21-word solution (Simmons, Nelson & Simonsohn, 2012; retrieved from http://ssrn.com/abstract=2160588) -->
+
+## Participants
+
+## Material
+
+## Procedure
+
+## Data analysis
+We used `r cite_r("r-references.bib")` for all our analyses.
+
+# Results
+
+## Evoked amplitude response
+
+We analysed evoked amplitude response patterns using a two-level hierarchical mass univariate analysis approach. Condition effects were estimated on single-trial data from each subject and then compared across subjects to assess significance (see Methods, mass univariate analysis).
+
+### Cue stimuli
+
+```{r load-cue-evoked-peaks}
+# eeg analysis
+cue_fpath <- '/Volumes/Crucial X8/code/eeg_patterns_dpx/data/bids/derivatives/limo/ttest_cues_peaks_fmax.json'
+cue_peaks <- fromJSON(file=cue_fpath)
+```
+
+```{r early-cue-evoked-activity}
+t_early <- cue_peaks$early$negative[[3]]
+
+early_cue_d <- effectsize::t_to_d(
+  t = t_early, df_error = 51, paired = TRUE, ci = 0.99
+  )
+
+t_early_str <- paste0('$t(51) = ', format.value(round(t_early, 2), 2), '$')
+
+d_early_str <- paste0(
+  '$d = ', format.value(round(early_cue_d$d, 2), 2), '$'
+  )
+d_ci_early_str <- paste0(
+  '99\\% CI ', 
+  '$[', format.value(round(early_cue_d$CI_low, 2), 2), ',' , format.value(round(early_cue_d$CI_high, 2), 2), ']$'
+  )
+```
+
+As depicted in Figure 3, analysis of the cue evoked activity revealed significant differences between responses elicited by the cue stimuli (i.e., cues "A" and "B"). These differences were centred around two main clusters. The first cluster spanned from approximately 180 to 250 ms post-cue. In this time window, "B" cues elicited a stronger negative polarisation of the evoked amplitude response at parietal and occipital sensors compared to "A" cues. The peak of this effect was observed at channel `r cue_peaks$early$negative[[1]]` at approximately `r round(cue_peaks$early$negative[[2]] * 1000)` ms post-stimulus (`r t_early_str`, `r d_early_str`, `r d_ci_early_str`); see Figures 4a and 4d).
+
+(ref:fig3-caption) Results of the mass univariate analysis of the cue-evoked amplitude response.\newline Depicted are the results of a paired-samples t-test contrasting cue “B” minus cue “A”. Panel a) shows the topographical distribution of the estimated effect (i.e., the t-values) on the scalp for four representative spatio-temporal clusters. Significant sensors (p<0.01) are highlighted. Panel b) shows the estimated effects for the complete cue retention interval and the entire sensor space, time locked to the onset of the cue. Time is depicted on the X-axis in b), with axis-ticks appearing every 250 milliseconds (ms). Only every 3rd sensor is labelled on the Y-axis in b) to avoid clutter. The highlighted time samples in b) are significant at p<0.01, corrected for multiple comparisons. .
+
+```{r figure-3, fig.cap = "(ref:fig3-caption)", out.width="100%", fig.align = 'center'}
+
+p1 <- ggdraw() +
+  draw_image("/Volumes/Crucial X8/code/eeg_patterns_dpx/data/bids/derivatives/limo/ttest_cues_tvals_fmax.png",
+             scale = 1, hjust=0)
+
+plot_grid(p1)
+```
+
+```{r midrange-cue-evoked-activity}
+t_midrange <- cue_peaks$midrange$positive[[3]]
+
+midrange_cue_d <- effectsize::t_to_d(
+  t = t_midrange, df_error = 51, paired = TRUE, ci = 0.99
+  )
+
+t_midrange_str <- paste0('$t(51) = ', format.value(round(t_midrange, 2), 2), '$')
+
+d_midrange_str <- paste0(
+  '$d = ', format.value(round(midrange_cue_d$d, 2), 2), '$'
+  )
+d_ci_midrange_str <- paste0(
+  '99\\% CI ', 
+  '$[', format.value(round(midrange_cue_d$CI_low, 2), 2), ',' , format.value(round(midrange_cue_d$CI_high, 2), 2), ']$'
+  )
+
+
+t_midrange_neg <- cue_peaks$midrange$negative[[3]]
+
+midrange_cue_d_neg <- effectsize::t_to_d(
+  t = t_midrange_neg, df_error = 51, paired = TRUE, ci = 0.99
+  )
+
+t_midrange_neg_str <- paste0('$t(51) = ', format.value(round(t_midrange_neg, 2), 2), '$')
+
+d_midrange_neg_str <- paste0(
+  '$d = ', format.value(round(midrange_cue_d_neg$d, 2), 2), '$'
+  )
+d_ci_midrange_neg_str <- paste0(
+  '99\\% CI ', 
+  '$[', format.value(round(midrange_cue_d_neg$CI_low, 2), 2), ',' , format.value(round(midrange_cue_d_neg$CI_high, 2), 2), ']$'
+  )
+```
+
+The second cluster extended from approximately 400 to 750 ms post-cue. During this time window, "B" cues showed a stronger positive polarisation of the evoked amplitude response at parietal sensors compared to "A" cues. The peak of this effect was observed at channel `r cue_peaks$midrange$positive[[1]]` at approximately `r round(cue_peaks$midrange$positive[[2]] * 1000)` ms post-stimulus (`r t_midrange_str`, `r d_midrange_str`, `r d_ci_midrange_str`; see Figures 4a and 4d). "B" cues also showed a more pronounced negative response at occipital sensors during the same time window compared to "A" cues (peak at channel `r cue_peaks$midrange$negative[[1]]` at approximately `r round(cue_peaks$midrange$negative[[2]] * 1000)` ms post-cue (`r t_midrange_neg_str`, `r d_midrange_neg_str`, `r d_ci_midrange_neg_str`).
+
+```{r late-later-cue-evoked-activity}
+t_late <- cue_peaks$late$negative[[3]]
+t_later <- cue_peaks$later$negative[[3]]
+
+later_cue_d <- effectsize::t_to_d(
+  t = t_later, df_error = 51, paired = TRUE, ci = 0.99
+  )
+
+t_later_str <- paste0('$t(51) = ', format.value(round(t_later, 2), 2), '$')
+
+d_later_str <- paste0(
+  '$d = ', format.value(round(later_cue_d$d, 2), 2), '$'
+  )
+d_ci_later_str <- paste0(
+  '99\\% CI ', 
+  '$[', format.value(round(later_cue_d$CI_low, 2), 2), ',' , format.value(round(later_cue_d$CI_high, 2), 2), ']$'
+  )
+
+
+```
+
+In addition, the analysis revealed two smaller clusters of differences between the amplitude responses elicited "A" and "B" cues. These differences emerged at approximately `r round(cue_peaks$late$negative[[2]] * 1000)` ms and `r round(cue_peaks$later$negative[[2]] * 1000)` ms post-cue. During these time windows, "B" cues elicited a more negative amplitude response at fronto-central sensors compared to "A" cues (peak at channel `r cue_peaks$later$negative[[1]]`, t(49) = -7.42, d = -1.04, and channel FC1 at approximately 1380 ms post-cue, `r t_later_str`, `r d_later_str`, `r d_ci_later_str`; see Figure 4c and Figure 4f).
+
+### Probe stmuli
+
+As shown in Figure 5, we found significant differences in the amplitude responses elicited by "X" and "Y" probes when they were presented after an "A" cue (i.e., between "AX" and "AY" cue-probe pairs). These differences were concentrated around three clusters. The first cluster spanned from approximately 180 to 270 ms after the presentation of the probe stimuli. In this time window, “Y” probes showed a stronger negative polarisation of the evoked amplitude response at parietal and occipital sensors compared to “X” probes. The peak of this effect occurred at sensor P6 at approximately 210 ms post-stimulus (t(51) = -10.21, d = -1.43, 99% CI = [-1.82, -1.04]; see Figures 6a and 6d). Moreover, “Y” probes elicited a more pronounced positive amplitude response at left frontal sensors compared to “X” probes during the same time window. The peak of this response was observed at sensor AF7 at approximately 220 ms post-stimulus (t(51) = 10.34, d = 1.45, 99% CI = [1.05, 1.84]).
+
+# Discussion
+
+
+\newpage
+
+# References
+
+::: {#refs custom-style="Bibliography"}
+:::
