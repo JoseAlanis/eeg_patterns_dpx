@@ -1,3 +1,38 @@
+#' Load Peaks from Data
+#'
+#' This function extracts peak information from a nested list and returns a structured data frame.
+#'
+#' @param data A nested list where the first level of names represent time windows, and the second level of names
+#'        represent modes. Each mode contains a list with electrode, peak_time, and peak_amp.
+#'
+#' @return A data frame with columns: 'time_window', 'mode', 'electrode', 'peak_time', and 'peak_amp'.
+#'         Each row represents a single peak measurement.
+#'
+#' @examples
+#' data <- list('0-50ms' = list('positive' = list(electrode=1, peak_time=25, peak_amp=0.5),
+#'                              'negative' = list(electrode=2, peak_time=30, peak_amp=0.6)))
+#' load.peaks(data)
+#'
+#' @importFrom stats rbind
+load.peaks <- function (data) {
+  peaks <- data.frame()
+  for (time in names(data)){
+    for (mode in names(data[time][[1]])) {
+      x <- unlist(data[time][[1]][mode], use.names = FALSE)
+      x <- c(x, c(time, mode))
+
+      peaks <- rbind(peaks, x)
+      names(peaks) <- c('electrode', 'peak_time', 'peak_amp', 'time_window', 'mode')
+
+    }
+  }
+
+  # rearange columns
+  peaks <- peaks[, c("time_window", "mode", "electrode", "peak_time", "peak_amp")]
+
+  return(peaks)
+}
+
 #' Load and install R packages.
 #'
 #' This function checks for the given packages in the current R installation.
