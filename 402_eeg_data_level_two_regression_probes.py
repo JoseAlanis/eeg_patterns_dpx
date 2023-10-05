@@ -22,7 +22,6 @@ import matplotlib.transforms as mtransforms
 import numpy as np
 import pandas as pd
 
-import patsy
 from scipy.stats import zscore
 
 from mne import read_epochs, EvokedArray
