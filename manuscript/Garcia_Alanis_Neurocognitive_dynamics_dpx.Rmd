@@ -1,28 +1,44 @@
 ---
 title             : "Neurocognitive dynamics of preparatory and adaptive cognitive control: Insights from Mass-univariate and multivariate pattern analysis of EEG data"
-shorttitle        : "Neurocognitive dynamics of preparatory and adaptive cognitive control:"
+shorttitle        : "Neurocognitive dynamics of cognitive control"
 
 author: 
   - name          : "José C. García Alanis"
     affiliation   : "1"
     corresponding : yes    # Define only one corresponding author
-    address       : "Postal address"
+    address       : "Gutenbergstr. 18, D-35032 Marburg (Germany)"
     email         : "jose.alanis@uni-marburg.de"
     role: # Contributorship roles (e.g., CRediT, https://credit.niso.org/)
       - "Conceptualization"
+      - "Methodology"
+      - "Software"
+      - "Investigation"
+      - "Formal analysis"
       - "Writing - Original Draft Preparation"
       - "Writing - Review & Editing"
   - name          : "Malte R. Güth"
     affiliation   : "1,2"
     role:
+      - "Methodology"
+      - "Investigation"
+      - "Writing - Review & Editing"
+  - name          : "Mira-Lynn Chavanon"
+    affiliation   : "1"
+    role:
       - "Writing - Review & Editing"
       - "Supervision"
-
+  - name          : "Martin Peper"
+    affiliation   : "1"
+    role:
+      - "Conceptualization"
+      - "Writing - Review & Editing"
+      - "Supervision"
+  
 affiliation:
   - id            : "1"
-    institution   : "Philipps-Universität Marburg"
+    institution   : "Department of Psychology, Philipps-Universität Marburg"
   - id            : "2"
-    institution   : "CMBN Rutgers"
+    institution   : "Center for Molecular and Behavioral Neuroscience, Rutgers University"
 
 authornote: |
   Add complete departmental affiliations for each author here. Each new line herein must be indented, like this line.
@@ -90,6 +106,10 @@ We analysed evoked amplitude response patterns using a two-level hierarchical ma
 # eeg analysis
 cue_fpath <- '/Volumes/Crucial X8/code/eeg_patterns_dpx/data/bids/derivatives/limo/ttest_cues_peaks_fmax.json'
 cue_peaks <- fromJSON(file=cue_fpath)
+
+probe_AY_AX_fpath <- '/Volumes/Crucial X8/code/eeg_patterns_dpx/data/bids/derivatives/limo/ttest_probes_AY_AX_peaks_fmax.json'
+probe_AY_AX_peaks <- fromJSON(file=probe_AY_AX_fpath)
+
 ```
 
 ```{r early-cue-evoked-activity}
@@ -181,11 +201,40 @@ d_ci_later_str <- paste0(
 
 ```
 
-In addition, the analysis revealed two smaller clusters of differences between the amplitude responses elicited "A" and "B" cues. These differences emerged at approximately `r round(cue_peaks$late$negative[[2]] * 1000)` ms and `r round(cue_peaks$later$negative[[2]] * 1000)` ms post-cue. During these time windows, "B" cues elicited a more negative amplitude response at fronto-central sensors compared to "A" cues (peak at channel `r cue_peaks$later$negative[[1]]`, t(49) = -7.42, d = -1.04, and channel FC1 at approximately 1380 ms post-cue, `r t_later_str`, `r d_later_str`, `r d_ci_later_str`; see Figure 4c and Figure 4f).
+In addition, the analysis revealed two smaller clusters of differences between the amplitude responses elicited "A" and "B" cues. These differences emerged at approximately `r round(cue_peaks$late$negative[[2]] * 1000)` ms and `r round(cue_peaks$later$negative[[2]] * 1000)` ms post-cue. During these time windows, "B" cues elicited a more negative amplitude response at fronto-central sensors compared to "A" cues (peak at channel `r cue_peaks$later$negative[[1]]`, `r t_later_str`, `r d_later_str`, and channel `r cue_peaks$later$negative[[1]]` at approximately `r cue_peaks$later$negative[[2]]` ms post-cue, `r t_later_str`, `r d_later_str`, `r d_ci_later_str`; see Figure 4c and Figure 4f).
 
 ### Probe stmuli
 
-As shown in Figure 5, we found significant differences in the amplitude responses elicited by "X" and "Y" probes when they were presented after an "A" cue (i.e., between "AX" and "AY" cue-probe pairs). These differences were concentrated around three clusters. The first cluster spanned from approximately 180 to 270 ms after the presentation of the probe stimuli. In this time window, “Y” probes showed a stronger negative polarisation of the evoked amplitude response at parietal and occipital sensors compared to “X” probes. The peak of this effect occurred at sensor P6 at approximately 210 ms post-stimulus (t(51) = -10.21, d = -1.43, 99% CI = [-1.82, -1.04]; see Figures 6a and 6d). Moreover, “Y” probes elicited a more pronounced positive amplitude response at left frontal sensors compared to “X” probes during the same time window. The peak of this response was observed at sensor AF7 at approximately 220 ms post-stimulus (t(51) = 10.34, d = 1.45, 99% CI = [1.05, 1.84]).
+```{r early-probe-evoked-activity}
+t_early_probe_AY_AX <- probe_AY_AX_peaks$early$negative[[3]]
+
+early_probe_AY_AX_d <- effectsize::t_to_d(
+  t = t_early_probe_AY_AX, df_error = 51, paired = TRUE, ci = 0.99
+  )
+
+t_early_probe_AY_AX_str <- paste0('$t(51) = ', format.value(round(t_early_probe_AY_AX, 2), 2), '$')
+
+d_early_probe_AY_AX_str <- paste0(
+  '$d = ', format.value(round(early_probe_AY_AX_d$d, 2), 2), '$'
+  )
+d_ci_early_probe_AY_AX_str <- paste0(
+  '99\\% CI ', 
+  '$[', format.value(round(early_probe_AY_AX_d$CI_low, 2), 2), ',' , format.value(round(early_probe_AY_AX_d$CI_high, 2), 2), ']$'
+  )
+```
+
+As shown in Figure 5, we found significant differences in the amplitude responses elicited by "X" and "Y" probes when they were presented after an "A" cue (i.e., between "AX" and "AY" cue-probe pairs). These differences were concentrated around three clusters. The first cluster spanned from approximately 180 to 270 ms after the presentation of the probe stimuli. In this time window, "Y" probes showed a stronger negative polarisation of the evoked amplitude response at parietal and occipital sensors compared to "X" probes. The peak of this effect occurred at channel `r probe_AY_AX_peaks$early$negative[[1]]` at approximately `r round(probe_AY_AX_peaks$early$negative[[2]] * 1000)` ms post-stimulus (`r t_early_probe_AY_AX`, `r d_early_probe_AY_AX_str`, `r d_ci_early_probe_AY_AX_str`; see Figures 6a and 6d). Moreover, "Y" probes elicited a more pronounced positive amplitude response at left frontal sensors compared to "X" probes during the same time window. The peak of this response was observed at sensor `r probe_AY_AX_peaks$early$positive[[1]]` at approximately `r round(probe_AY_AX_peaks$early$positive[[2]] * 1000)` ms post-stimulus (t(51) = 10.34, d = 1.45, 99% CI = [1.05, 1.84]).
+
+(ref:fig4-caption) Results of the mass univariate analysis of the probe-evoked amplitude response for the contrast "AY" minus "AX".\newline Depicted are the results of a paired-samples t-test contrasting "Y" probes minus "X" probes in "A" cue trails (i.e., the contrast of probe evoked activity between "AY" and "AX" pairs, time locked to probe onset). Panel a) shows the topographical distribution of the estimated effect (i.e., the t-values) on the scalp for three representative spatio-temporal clusters. Significant sensors (p<0.01) are highlighted. Panel b) shows the estimated effects for the complete probe processing interval and the entire sensor space. Time is depicted on the X-axis in b), with axis-ticks appearing every 250 milliseconds (ms). Only every 3rd sensor is labelled on the Y-axis in b) to avoid clutter. The highlighted time samples in b) are significant at p<0.01, corrected for multiple comparisons. 
+
+```{r figure-4, fig.cap = "(ref:fig4-caption)", out.width="100%", fig.align = 'center'}
+
+p2 <- ggdraw() +
+  draw_image("/Volumes/Crucial X8/code/eeg_patterns_dpx/data/bids/derivatives/limo/ttest_probes_AY_AX_tvals_fmax.png",
+             scale = 1, hjust=0)
+
+plot_grid(p2)
+```
 
 # Discussion
 
