@@ -148,3 +148,54 @@ format.value <- function(value, nsmall = 3, simplify = TRUE) {
 
   return(print_value)
 }
+
+#' Generate Report for t-values
+#'
+#' This function extracts specific peak information from a provided data frame, 
+#' computes t-value and effect size, and generates a report in string format.
+#'
+#' @param peaks A data frame containing columns: 'time_window', 'mode', 'electrode', 'peak_time', and 'peak_amp'.
+#'        It should represent peak measurement data.
+#' @param N Numeric. The number of samples/observations. Used for degrees of freedom computation.
+#' @param time_window A string. Specifies the time window of interest for filtering. Defaults to 'early'.
+#' @param mode A string. Specifies the mode of interest for filtering. Defaults to 'negative'.
+#'
+#' @return A named list with three elements:
+#'         - 't': A string representation of the t-value.
+#'         - 'd': A string representation of the Cohen's d effect size.
+#'         - 'dci': A string representation of the 99% confidence interval for Cohen's d.
+#'
+#' @examples
+#' peaks_df <- data.frame(time_window = c('early', 'late'), mode = c('negative', 'positive'), 
+#'                        electrode = c(1, 2), peak_time = c(25, 50), peak_amp = c(0.5, 0.6))
+#' report.t.vlaues(peaks_df, N = 30)
+#'
+#' @importFrom dplyr filter select mutate
+#' @importFrom effectsize t_to_d
+report.t.values <- function(peaks, N, time_window = 'early', mode = 'negative') {
+  require(dplyr)
+  require(effectsize)
+  
+  # get peaks
+  peak_oi <- peaks %>% 
+    dplyr::filter(time_window == time_window & mode == mode) %>%
+    dplyr::select(electrode, peak_time, peak_amp) %>%
+    dplyr::mutate(peak_time = round(as.numeric(peak_time) * 1000),
+                  peak_amp = as.numeric(peak_amp)) 
+  
+  # make strings
+  channel <- peak_oi %>% select(electrode)
+  time <- peak_oi %>% select(peak_time)
+  
+  t_str <- paste0('$t(', N-1, ') = ', format(round(peak_oi$peak_amp, digits = 2), nsmall = 2), '$')
+  d <- effectsize::t_to_d(t = peak_oi$peak_amp, df_error = N-1, paired = TRUE, ci = 0.99)
+  d_str <- paste0('$d = ', format(round(d$d, digits = 2), nsmall = 2), '$')
+  d_ci_str <- paste0('99\\% CI ', '$[', format(round(d$CI_low, digits = 2), nsmall = 2), ',', format(round(d$CI_high, digits = 2), nsmall = 2), ']$')
+  
+  # gather everything in list
+  results <- list(as.character(channel), as.numeric(time), t_str, d_str, d_ci_str)
+  names(results) <- c('channel', 'time', 't', 'd', 'dci')
+  
+  return(results)
+  
+}

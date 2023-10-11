@@ -186,137 +186,32 @@ to assess significance (see Methods, mass univariate analysis).
 ```{r format-cue-evoked-activity}
 # n subjects and error dfs
 N <- 52
-t_df <- N-1
 
-# -----------------------------------------------------------------------------
-# calculate effectsize (early cue time window) --------------------------------
-early_neg_electrode <- cue_peaks %>%
-  dplyr::filter(time_window == 'early' & mode == 'negative') %>%
-  dplyr::select(electrode)
+# early effects
+early_negative <- report.t.values(cue_peaks, N, time_window = 'early', mode = 'negative')
+early_positive <- report.t.values(cue_peaks, N, time_window = 'early', mode = 'positive')
 
-early_neg_time <- cue_peaks %>%
-  dplyr::filter(time_window == 'early' & mode == 'negative') %>%
-  dplyr::mutate(peak_time = round(as.numeric(peak_time) * 1000)) %>%
-  dplyr::select(peak_time)
+# mid range effects
+mid_positive <- report.t.values(cue_peaks, N, time_window = 'midrange', mode = 'positive')
+mid_negative <- report.t.values(cue_peaks, N, time_window = 'midrange', mode = 'negative')
 
-t_early <- cue_peaks %>%
-  dplyr::filter(time_window == 'early' & mode == 'negative') %>%
-  dplyr::select(peak_amp) %>%
-  as.numeric()
-
-# -----------------------------------------------------------------------------
-# make strings for reporting (early cue time window) --------------------------
-t_early_str <- paste0(
-  '$t(51) = ',
-  format.value(round(t_early, 2), 2),
-  '$')
-
-early_cue_d <- effectsize::t_to_d(
-  t = t_early, df_error = t_df, paired = TRUE, ci = 0.99
-  )
-
-d_early_str <- paste0(
-  '$d = ',
-  format.value(round(early_cue_d$d, 2), 2),
-  '$')
-d_ci_early_str <- paste0(
-  '99\\% CI ', 
-  '$[',
-  format.value(round(early_cue_d$CI_low, 2), 2),
-  ',',
-  format.value(round(early_cue_d$CI_high, 2), 2)
-  , ']$')
-
-# -----------------------------------------------------------------------------
-# calculate effectsize (midrange cue time window) -----------------------------
-
-# positive
-mid_pos_electrode <- cue_peaks %>%
-  dplyr::filter(time_window == 'midrange' & mode == 'positive') %>%
-  dplyr::select(electrode)
-
-mid_pos_time <- cue_peaks %>%
-  dplyr::filter(time_window == 'midrange' & mode == 'positive') %>%
-  dplyr::mutate(peak_time = round(as.numeric(peak_time) * 1000)) %>%
-  dplyr::select(peak_time)
-
-t_mid_pos <- cue_peaks %>%
-  dplyr::filter(time_window == 'midrange' & mode == 'positive') %>%
-  dplyr::select(peak_amp) %>%
-  as.numeric()
-
-# negative
-mid_neg_electrode <- cue_peaks %>%
-  dplyr::filter(time_window == 'midrange' & mode == 'negative') %>%
-  dplyr::select(electrode)
-
-mid_neg_time <- cue_peaks %>%
-  dplyr::filter(time_window == 'midrange' & mode == 'negative') %>%
-  dplyr::mutate(peak_time = round(as.numeric(peak_time) * 1000)) %>%
-  dplyr::select(peak_time)
-
-t_mid_neg <- cue_peaks %>%
-  dplyr::filter(time_window == 'midrange' & mode == 'negative') %>%
-  dplyr::select(peak_amp) %>%
-  as.numeric()
-
-# -----------------------------------------------------------------------------
-# make strings for reporting (early cue time window) --------------------------
-
-# positive
-t_mid_pos_str <- paste0(
-  '$t(51) = ',
-  format.value(round(t_mid_pos, 2), 2),
-  '$')
-
-mid_pos_d <- effectsize::t_to_d(
-  t = t_mid_pos, df_error = t_df, paired = TRUE, ci = 0.99
-)
-
-d_mid_pos_str <- paste0(
-  '$d = ',
-  format.value(round(mid_pos_d$d, 2), 2),
-  '$')
-d_ci_mid_pos_str <- paste0(
-  '99\\% CI ',
-  '$[',
-  format.value(round(mid_pos_d$CI_low, 2), 2),
-  ',',
-  format.value(round(mid_pos_d$CI_high, 2), 2)
-  , ']$')
-
-# negative
-t_mid_neg_str <- paste0(
-  '$t(51) = ',
-  format.value(round(t_mid_neg, 2), 2),
-  '$')
-
-mid_neg_d <- effectsize::t_to_d(
-  t = t_mid_neg, df_error = t_df, paired = TRUE, ci = 0.99
-)
-
-d_mid_neg_str <- paste0(
-  '$d = ',
-  format.value(round(mid_neg_d$d, 2), 2),
-  '$')
-d_ci_mid_neg_str <- paste0(
-  '99\\% CI ',
-  '$[',
-  format.value(round(mid_neg_d$CI_low, 2), 2),
-  ',',
-  format.value(round(mid_neg_d$CI_high, 2), 2)
-  , ']$')
+# late/later effects
+late_negative <- report.t.values(cue_peaks, N, time_window = 'late', mode = 'negative')
+later_negative  <- report.t.values(cue_peaks, N, time_window = 'later', mode = 'negative')
 ```
 
 As depicted in Figure 3, analysis of the cue evoked activity revealed
 significant differences between responses elicited by the cue stimuli
-(i.e., cues "A" and "B"). These differences were centred around two main
-clusters. The first cluster spanned from approximately 180 to 250 ms post-cue.
-In this time window, "B" cues elicited a stronger negative polarisation of the
-evoked amplitude response at parietal and occipital sensors compared to "A" cues.
-The peak of this effect was observed at channel `r early_neg_electrode` at
-approximately `r early_neg_time` ms post-stimulus (`r t_early`,
-`r d_early_str`, `r d_ci_early_str`); see Figures 4a and 4d).
+(i.e., cues "A" and "B"). The earliest differences emerged at approximately 
+180 to 250 ms post-cue. In this time window, "B" cues elicited a stronger 
+negative polarisation of the evoked amplitude response at parietal and occipital 
+sensors compared to "A" cues. The peak of this effect was observed at channel 
+`r early_negative$channel` at approximately `r early_negative$time` ms 
+post-stimulus (`r early_negative$t`, `r early_negative$d`, `r early_negative$dci`); 
+see Figures 4a and 4d). "B" cues also showed a more pronounced positive amplitude 
+response at frontal sensors during the same time window compared to "A" cues (peak at channel 
+`r early_positive$channel` at approximately `r early_positive$time` ms post-cue,
+`r early_positive$t`, `r early_positive$d`, `r early_positive$dci`).
 
 (ref:fig3-caption) Results of the mass univariate analysis of the cue-evoked
 amplitude response.
@@ -329,8 +224,25 @@ entire sensor space, time locked to the onset of the cue. Time is depicted on
 the X-axis in b), with axis-ticks appearing every 250 milliseconds (ms).
 Only every 3rd sensor is labelled on the Y-axis in b) to avoid clutter.
 The highlighted time samples in b) are significant at p<0.01,
-corrected for multiple comparisons. .
+corrected for multiple comparisons.
 
+A second cluster of differences extended from approximately 400 to 750 ms post-cue.
+During this time window, "B" cues showed a stronger positive polarisation of
+the evoked amplitude response at parietal sensors compared to "A" cues.
+The peak of this effect was observed at channel `r mid_positive$channel`
+at approximately `r mid_positive$time` ms post-stimulus
+(`r mid_positive$t`, `r mid_positive$d`, `r mid_positive$dci`; see Figures 4a and 4d).
+"B" cues also showed a more pronounced negative response at occipital sensors during the
+same time window compared to "A" cues. This effect reached its peak at channel `r mid_negative$channel`
+at approximately `r mid_negative$time` ms post-cue (`r mid_negative$t`,
+`r mid_negative$d`, `r mid_negative$dci`).
+
+Finally, the analysis revealed two smaller clusters of differences at approximately 
+`r late_negative$time` ms and `r later_negative$time` ms post-cue. During these time
+windows, "B" cues elicited a more negative amplitude response at fronto-central
+sensors compared to "A" cues at channel `r late_negative$channel` 
+(`r later_negative$t`, `r later_negative$d`, `r later_negative$dci`; 
+see Figure 4c and Figure 4f).
 
 ```{r figure-3, fig.cap = "(ref:fig3-caption)", out.width="100%", fig.align = 'center'}
 p1 <- ggdraw() +
@@ -340,74 +252,33 @@ p1 <- ggdraw() +
 plot_grid(p1)
 ```
 
-```{r midrange-cue-evoked-activity}
-```
-
-The second cluster extended from approximately 400 to 750 ms post-cue.
-During this time window, "B" cues showed a stronger positive polarisation of
-the evoked amplitude response at parietal sensors compared to "A" cues.
-The peak of this effect was observed at channel `r mid_pos_electrode`
-at approximately `r mid_pos_time` ms post-stimulus
-(`r t_mid_pos_str`, `r d_mid_pos_str`, `r d_ci_mid_pos_str`; see Figures 4a and 4d).
-"B" cues also showed a more pronounced negative response at occipital sensors during the
-same time window compared to "A" cues. This effect reached its peak at channel `r mid_neg_electrode`
-at approximately `r mid_neg_time` ms post-cue (`r t_mid_neg_str`,
-`r d_mid_neg_str`, `r d_ci_mid_neg_str`).
-
-```{r late-later-cue-evoked-activity}
-t_late <- cue_peaks$late$negative[[3]]
-t_later <- cue_peaks$later$negative[[3]]
-
-later_cue_d <- effectsize::t_to_d(
-  t = t_later, df_error = 51, paired = TRUE, ci = 0.99
-  )
-
-t_later_str <- paste0('$t(51) = ', format.value(round(t_later, 2), 2), '$')
-
-d_later_str <- paste0(
-  '$d = ', format.value(round(later_cue_d$d, 2), 2), '$'
-  )
-d_ci_later_str <- paste0(
-  '99\\% CI ', 
-  '$[', format.value(round(later_cue_d$CI_low, 2), 2), ',' , format.value(round(later_cue_d$CI_high, 2), 2), ']$'
-  )
-
-
-```
-
-In addition, the analysis revealed two smaller clusters of differences between
-the amplitude responses elicited "A" and "B" cues. These differences emerged at
-approximately `r round(cue_peaks$late$negative[[2]] * 1000)` ms and
-`r round(cue_peaks$later$negative[[2]] * 1000)` ms post-cue. During these time
-windows, "B" cues elicited a more negative amplitude response at fronto-central
-sensors compared to "A" cues (peak at channel `r cue_peaks$later$negative[[1]]`,
-`r t_later_str`, `r d_later_str`, and channel `r cue_peaks$later$negative[[1]]` at
-approximately `r cue_peaks$later$negative[[2]]` ms post-cue, `r t_later_str`,
-`r d_later_str`, `r d_ci_later_str`; see Figure 4c and Figure 4f).
-
 ### Probe stmuli
 
-```{r early-probe-evoked-activity}
-t_early_probe_AY_AX <- probe_AY_AX_peaks$early$negative[[3]]
+```{r format-probe-evoked-activity}
+# n subjects and error dfs
+N <- 52
 
-early_probe_AY_AX_d <- effectsize::t_to_d(
-  t = t_early_probe_AY_AX, df_error = 51, paired = TRUE, ci = 0.99
-  )
+# early effects
+early_negative <- report.t.values(AY_AX_peaks, N, time_window = 'early', mode = 'negative')
+early_positive <- report.t.values(AY_AX_peaks, N, time_window = 'early', mode = 'positive')
 
-t_early_probe_AY_AX_str <- paste0('$t(51) = ', format.value(round(t_early_probe_AY_AX, 2), 2), '$')
+# mid range effects
+mid_positive <- report.t.values(cue_peaks, N, time_window = 'midrange', mode = 'positive')
+mid_negative <- report.t.values(cue_peaks, N, time_window = 'midrange', mode = 'negative')
 
-d_early_probe_AY_AX_str <- paste0(
-  '$d = ', format.value(round(early_probe_AY_AX_d$d, 2), 2), '$'
-  )
-d_ci_early_probe_AY_AX_str <- paste0(
-  '99\\% CI ', 
-  '$[', format.value(round(early_probe_AY_AX_d$CI_low, 2), 2), ',' , format.value(round(early_probe_AY_AX_d$CI_high, 2), 2), ']$'
-  )
+# late/later effects
+late_negative <- report.t.values(cue_peaks, N, time_window = 'late', mode = 'negative')
+later_negative  <- report.t.values(cue_peaks, N, time_window = 'later', mode = 'negative')
 ```
 
 As shown in Figure 5, we found significant differences in the amplitude responses elicited by "X" and "Y" probes when they were presented after an "A" cue (i.e., between "AX" and "AY" cue-probe pairs). These differences were concentrated around three clusters. The first cluster spanned from approximately 180 to 270 ms after the presentation of the probe stimuli. In this time window, "Y" probes showed a stronger negative polarisation of the evoked amplitude response at parietal and occipital sensors compared to "X" probes. The peak of this effect occurred at channel `r probe_AY_AX_peaks$early$negative[[1]]` at approximately `r round(probe_AY_AX_peaks$early$negative[[2]] * 1000)` ms post-stimulus (`r t_early_probe_AY_AX`, `r d_early_probe_AY_AX_str`, `r d_ci_early_probe_AY_AX_str`; see Figures 6a and 6d). Moreover, "Y" probes elicited a more pronounced positive amplitude response at left frontal sensors compared to "X" probes during the same time window. The peak of this response was observed at sensor `r probe_AY_AX_peaks$early$positive[[1]]` at approximately `r round(probe_AY_AX_peaks$early$positive[[2]] * 1000)` ms post-stimulus (t(51) = 10.34, d = 1.45, 99% CI = [1.05, 1.84]).
 
 (ref:fig4-caption) Results of the mass univariate analysis of the probe-evoked amplitude response for the contrast "AY" minus "AX".\newline Depicted are the results of a paired-samples t-test contrasting "Y" probes minus "X" probes in "A" cue trails (i.e., the contrast of probe evoked activity between "AY" and "AX" pairs, time locked to probe onset). Panel a) shows the topographical distribution of the estimated effect (i.e., the t-values) on the scalp for three representative spatio-temporal clusters. Significant sensors (p<0.01) are highlighted. Panel b) shows the estimated effects for the complete probe processing interval and the entire sensor space. Time is depicted on the X-axis in b), with axis-ticks appearing every 250 milliseconds (ms). Only every 3rd sensor is labelled on the Y-axis in b) to avoid clutter. The highlighted time samples in b) are significant at p<0.01, corrected for multiple comparisons. 
+
+```{r early-probe-evoked-activity}
+
+```
+
 
 ```{r figure-4, fig.cap = "(ref:fig4-caption)", out.width="100%", fig.align = 'center'}
 
