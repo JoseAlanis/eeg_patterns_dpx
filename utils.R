@@ -172,28 +172,28 @@ format.value <- function(value, nsmall = 3, simplify = TRUE) {
 #'
 #' @importFrom dplyr filter select mutate
 #' @importFrom effectsize t_to_d
-report.t.values <- function(peaks, N, time_window = 'early', mode = 'negative') {
+report.t.values <- function(peaks, N, time = 'early', polarity = 'negative') {
   require(dplyr)
   require(effectsize)
   
   # get peaks
   peak_oi <- peaks %>% 
-    dplyr::filter(time_window == time_window & mode == mode) %>%
+    dplyr::filter(time_window == time & mode == polarity) %>%
     dplyr::select(electrode, peak_time, peak_amp) %>%
     dplyr::mutate(peak_time = round(as.numeric(peak_time) * 1000),
                   peak_amp = as.numeric(peak_amp)) 
   
   # make strings
-  channel <- peak_oi %>% select(electrode)
-  time <- peak_oi %>% select(peak_time)
+  peak_channel <- peak_oi %>% select(electrode)
+  peak_time <- peak_oi %>% select(peak_time)
   
   t_str <- paste0('$t(', N-1, ') = ', format(round(peak_oi$peak_amp, digits = 2), nsmall = 2), '$')
   d <- effectsize::t_to_d(t = peak_oi$peak_amp, df_error = N-1, paired = TRUE, ci = 0.99)
   d_str <- paste0('$d = ', format(round(d$d, digits = 2), nsmall = 2), '$')
-  d_ci_str <- paste0('99\\% CI ', '$[', format(round(d$CI_low, digits = 2), nsmall = 2), ',', format(round(d$CI_high, digits = 2), nsmall = 2), ']$')
+  d_ci_str <- paste0('99\\%', ' CI$_{d}$ ', '$[', format(round(d$CI_low, digits = 2), nsmall = 2), ',', format(round(d$CI_high, digits = 2), nsmall = 2), ']$')
   
   # gather everything in list
-  results <- list(as.character(channel), as.numeric(time), t_str, d_str, d_ci_str)
+  results <- list(as.character(peak_channel), as.numeric(peak_time), t_str, d_str, d_ci_str)
   names(results) <- c('channel', 'time', 't', 'd', 'dci')
   
   return(results)

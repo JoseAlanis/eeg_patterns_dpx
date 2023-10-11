@@ -135,8 +135,8 @@ for sub in range(betas.shape[0]):
 preds = {'AX': 0, 'AY': 1, 'BX': 2, 'BY': 3}
 
 # condition of interest
-pred_0 = 'BX'
-pred_1 = 'BY'
+pred_0 = 'AX'
+pred_1 = 'AY'
 
 # condiotions for analysis
 probe_0_coef = betas[:, preds[pred_0], :]
@@ -239,7 +239,7 @@ sig_mask = sig_mask > sig_threshold
 # plot mass-univariate results
 fig = plot_contrast_tvals(preds_contrast_t,
                           figsize=(5.5, 5.0),
-                          times=[0.155, 0.270, 0.61],
+                          times=[0.22, 0.360, 0.550],
                           mask=sig_mask,
                           xlim=[-0.25, 1.00],
                           clim=[-12, 12])
@@ -259,10 +259,10 @@ early_negative = preds_contrast_t.get_peak(
 )
 
 midrange_positive = preds_contrast_t.get_peak(
-    tmin=0.250, tmax=0.450, mode='pos', return_amplitude=True
+    tmin=0.250, tmax=0.400, mode='pos', return_amplitude=True
 )
 midrange_negative = preds_contrast_t.get_peak(
-    tmin=0.250, tmax=0.450, mode='neg', return_amplitude=True
+    tmin=0.250, tmax=0.400, mode='neg', return_amplitude=True
 )
 
 late_positive = preds_contrast_t.get_peak(
