@@ -281,23 +281,23 @@ ay_ax_early_negative <- report.t.values(AY_AX_peaks, N, time = 'early', polarity
 ay_ax_early_positive <- report.t.values(AY_AX_peaks, N, time = 'early', polarity = 'positive')
 
 # mid range effects
-ay_ax_mid_positive <- report.t.values(cue_peaks, N, time = 'midrange', polarity = 'positive')
-ay_ax_mid_negative <- report.t.values(cue_peaks, N, time = 'midrange', polarity = 'negative')
+ay_ax_mid_positive <- report.t.values(AY_AX_peaks, N, time = 'midrange', polarity = 'positive')
+ay_ax_mid_negative <- report.t.values(AY_AX_peaks, N, time = 'midrange', polarity = 'negative')
 
 # late/later effects
-ay_ax_late_positive <- report.t.values(cue_peaks, N, time = 'late', polarity = 'positive')
-ay_ax_late_negative <- report.t.values(cue_peaks, N, time = 'late', polarity = 'negative')
+ay_ax_late_positive <- report.t.values(AY_AX_peaks, N, time = 'late', polarity = 'positive')
+ay_ax_late_negative <- report.t.values(AY_AX_peaks, N, time = 'late', polarity = 'negative')
 ```
 
-As shown in Figure 5, we found significant differences in the amplitude responses
+Similarly, we found significant differences in the amplitude responses
 elicited by "X" and "Y" probes when they were presented after an "A" cue
-(i.e., between "AX" and "AY" cue-probe pairs). The earliest differences emerged
-at approximately 180 to 250 ms post-porbe. In this time window, "Y" probes
-showed a stronger negative polarisation of the evoked amplitude response at
+(i.e., between "AX" and "AY" cue-probe pairs). As shown in figure 5, the earliest 
+differences emerged at approximately 180 to 250 ms post-porbe. In this time window, 
+"Y" probes showed a stronger negative polarisation of the evoked amplitude response at
 parietal and occipital sensors compared to "X" probes. The peak of this effect
 occurred at channel `r ay_ax_early_negative$channel` at approximately
 `r ay_ax_early_negative$time` ms post-stimulus (`r ay_ax_early_negative$t`,
-`r ay_ax_early_negative$d`, `r ay_ax_early_negative$dci`; see Figures 6a and 6d).
+`r ay_ax_early_negative$d`, `r ay_ax_early_negative$dci`).
 Moreover, "Y" probes elicited a more pronounced positive
 amplitude response at left frontal sensors compared to "X" probes during the
 same time window. The peak of this response was observed at
@@ -305,9 +305,31 @@ sensor `r ay_ax_early_positive$channel` at approximately
 `r ay_ax_early_positive$time` ms post-stimulus (`r ay_ax_early_positive$t`,
 `r ay_ax_early_positive$d`, `r ay_ax_early_positive$dci`).
 
-(ref:fig4-caption) Results of the mass univariate analysis of the probe-evoked
-amplitude response for the contrast "AY" minus "AX".
-\newline Depicted are the results of a paired-samples t-test contrasting "Y"
+A second cluster of differences spanned from approximately 
+300 to 400 ms following the probe presentation. During this period, 
+"Y" probes elicited a stronger positive polarisation of the evoked amplitude response
+at fronto-central sensors. The peak of this effect was observed at sensor
+`r ay_ax_mid_positive$channel` at approximately `r ay_ax_mid_positive$time` ms 
+post-stimulus (`r ay_ax_mid_positive$t`, `r ay_ax_mid_positive$d`, 
+`r ay_ax_mid_positive$dci`). "Y" probes also elicited a 
+more pronounced positive negative response at left occipital sensors (peak at 
+`r ay_ax_mid_negative$channel` at approximately `r ay_ax_mid_negative$time` ms) compared to 
+"X" probes during the same time window (`r ay_ax_mid_negative$t`, `r ay_ax_mid_negative$d`, 
+`r ay_ax_mid_negative$dci`).
+
+The analysis revealed a third cluster of differences spanning from approximately 
+450 to 750 ms after the probe presentation. Within this time window, 
+"Y" probes exhibited a more positive amplitude response 
+at parietal sensors. The peak of this effect was observed at 
+`r ay_ax_late_positive$channel` at approximately `r ay_ax_late_positive$time` ms 
+(`r ay_ax_late_positive$t`, `r ay_ax_late_positive$d`, `r ay_ax_late_positive$dci`).
+
+```{=latex}
+\begin{figure}[!ht]
+\caption{Results of the mass univariate analysis of the probe-evoked
+amplitude response for the contrast "AY" minus "AX"} \label{fig:ttest_probes_clusters}
+\includegraphics{ttest_probes_tvals_fmax}
+\textit{Note:} Depicted are the results of a paired-samples t-test contrasting "Y"
 probes minus "X" probes in "A" cue trails (i.e., the contrast of probe evoked
 activity between "AY" and "AX" pairs, time locked to probe onset). Panel a)
 shows the topographical distribution of the estimated effect (i.e., the t-values)
@@ -317,15 +339,7 @@ probe processing interval and the entire sensor space. Time is depicted on the X
 with axis-ticks appearing every 250 milliseconds (ms). Only every 3rd sensor is
 labelled on the Y-axis in b) to avoid clutter. The highlighted time samples in b)
 are significant at p<0.01, corrected for multiple comparisons.
-
-
-```{r figure-4, fig.cap = "(ref:fig4-caption)", out.width="100%", fig.align = 'center'}
-
-p2 <- ggdraw() +
-  draw_image("/media/administrator/Crucial X8/code/eeg_patterns_dpx/data/bids/derivatives/limo/ttest_probes_AY_AX_tvals_fmax.png",
-             scale = 1, hjust=0)
-
-plot_grid(p2)
+\end{figure}
 ```
 
 # Discussion
