@@ -15,6 +15,8 @@ import sys
 import os
 import glob
 
+import json
+
 import matplotlib.pyplot as plt
 
 import numpy as np
@@ -234,20 +236,80 @@ fig = plot_contrast_tvals(cue_contrast_t,
                           mask=sig_mask,
                           xlim=[-0.25, 2.50],
                           clim=[-12, 12])
-fig.savefig('../results/figures/ttest_cues_tvals_%s.png' % method,
-            dpi=600)
+cue_contrast_fig_path = os.path.join(
+    FPATH_DERIVATIVES, 'limo', 'ttest_cues_tvals_%s.png'
+                               % method
+)
+fig.savefig(cue_contrast_fig_path, dpi=600)
 
+# %%
+# get peaks
+early_positive = cue_contrast_t.get_peak(
+    tmin=0.150, tmax=0.250, mode='pos', return_amplitude=True
+)
+early_negative = cue_contrast_t.get_peak(
+    tmin=0.150, tmax=0.250, mode='neg', return_amplitude=True
+)
+
+midrange_positive = cue_contrast_t.get_peak(
+    tmin=0.400, tmax=0.750, mode='pos', return_amplitude=True
+)
+midrange_negative = cue_contrast_t.get_peak(
+    tmin=0.400, tmax=0.750, mode='neg', return_amplitude=True
+)
+
+late_positive = cue_contrast_t.get_peak(
+    tmin=1.000, tmax=1.200, mode='pos', return_amplitude=True
+)
+late_negative = cue_contrast_t.get_peak(
+    tmin=1.000, tmax=1.200, mode='neg', return_amplitude=True
+)
+
+later_positive = cue_contrast_t.get_peak(
+    tmin=1.250, tmax=1.500, mode='pos', return_amplitude=True
+)
+later_negative = cue_contrast_t.get_peak(
+    tmin=1.250, tmax=1.500, mode='neg', return_amplitude=True
+)
+
+# store in dictionary
+cue_effects = {
+    'early':
+        {'positive': early_positive,
+         'negative': early_negative},
+    'midrange':
+        {'positive': midrange_positive,
+         'negative': midrange_negative},
+    'late':
+        {'positive': late_positive,
+         'negative': late_negative},
+    'later':
+        {'positive': later_positive,
+         'negative': later_negative},
+}
+
+# save cluster peaks
+cue_contrast_peaks_path = os.path.join(
+    FPATH_DERIVATIVES, 'limo', 'ttest_cue_peaks_%s.json' % method
+)
+with open(cue_contrast_peaks_path, 'w') as fp:
+    json.dump(cue_effects, fp)
+
+# %%
 # plot exemplary sensors
 fig = plot_contrast_sensor(cue_contrast_t,
                            lower_b=l_tval, upper_b=u_tval,
                            sig_mask=sig_mask,
-                           sensors=['Fz', 'FCz', 'Pz', 'PO8'],
+                           sensors=['P6', 'Pz', 'FC1'],
                            xlim=[-0.25, 2.50],
                            ylim=[-15, 15],
                            figsize=(5.5, 10.5),
-                           panel_letters=['d', 'e', 'f', 'g'])
-fig.savefig('../results/figures/ttest_cues_sensors_%s.png' % method,
-            dpi=600)
+                           panel_letters=['d', 'e', 'f'])
+cue_contrast_sensors_fig_path = os.path.join(
+    FPATH_DERIVATIVES, 'limo', 'ttest_cues_sensors_%s.png'
+                               % method
+)
+fig.savefig(cue_contrast_sensors_fig_path, dpi=600)
 
 # %%
 # test effect of behavioural a-cue bias on the amplitude response evoked
@@ -291,9 +353,6 @@ l_tval = l_tval.reshape((n_channels, n_times))
 u_tval = np.quantile(a_bias_boot, axis=0, q=1 - 0.01 / 2)
 u_tval = u_tval.reshape((n_channels, n_times))
 
-sig_threshold = np.quantile(a_bias_boot ** 2, [.99], axis=0)
-sig_mask = (t_vals.reshape((n_channels, n_times)) ** 2) >= sig_threshold
-
 fig = a_bias_effect.plot_joint(times=[0.80, 1.13, 1.32, 2.00],
                                topomap_args=dict(vlim=(-2.5, 2.5),
                                                  time_unit='ms'),
@@ -323,7 +382,7 @@ fig.savefig('../results/figures/a_bias_cue_evoked.png', dpi=300)
 fig = plot_contrast_sensor(a_bias_effect,
                            lower_b=l_tval, upper_b=u_tval,
                            sig_mask=None,
-                           sensors=['Pz', 'P5'],
+                           sensors=['P1', 'P5'],
                            xlim=[-0.25, 2.5],
                            ylim=[-3, 3],
                            ylabel=r'$\beta$ ($\mu$V)',
