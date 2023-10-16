@@ -328,7 +328,7 @@ at parietal sensors. The peak of this effect was observed at
 \begin{figure}[!ht]
 \caption{Results of the mass univariate analysis of the probe-evoked
 amplitude response for the contrast "AY" minus "AX"} \label{fig:ttest_probes_clusters}
-\includegraphics{ttest_probes_tvals_fmax}
+\includegraphics{ttest_probes_AY_AX_tvals_fmax}
 \textit{Note:} Depicted are the results of a paired-samples t-test contrasting "Y"
 probes minus "X" probes in "A" cue trails (i.e., the contrast of probe evoked
 activity between "AY" and "AX" pairs, time locked to probe onset). Panel a)
@@ -340,6 +340,30 @@ with axis-ticks appearing every 250 milliseconds (ms). Only every 3rd sensor is
 labelled on the Y-axis in b) to avoid clutter. The highlighted time samples in b)
 are significant at p<0.01, corrected for multiple comparisons.
 \end{figure}
+```
+
+```{r figure-cues, out.width="100%", fig.align = 'center'}
+fig_path <- '/media/administrator/Crucial X8/code/eeg_patterns_dpx/data/bids/derivatives/limo/'
+p1 <- ggdraw() +
+  draw_image(paste0(fig_path, "cues_erps.png"),
+             scale = 1, hjust=-0.1)
+p2 <- ggdraw() +
+  draw_image(paste0(fig_path, "ttest_cues_sensors_fmax.png"),
+             scale = 1, hjust=0.1)
+
+plot_grid(p1, p2)
+```
+
+```{r figure-probes, out.width="100%", fig.align = 'center'}
+fig_path <- '/media/administrator/Crucial X8/code/eeg_patterns_dpx/data/bids/derivatives/limo/'
+p1 <- ggdraw() +
+  draw_image(paste0(fig_path, "probes_ax_ay_erps.png"),
+             scale = 1, hjust=-0.1)
+p2 <- ggdraw() +
+  draw_image(paste0(fig_path, "ttest_probes_sensors_AY_AX_fmax.png"),,
+             scale = 1, hjust=0.1)
+
+plot_grid(p1, p2)
 ```
 
 # Discussion

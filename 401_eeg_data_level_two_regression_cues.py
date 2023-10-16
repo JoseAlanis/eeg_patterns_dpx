@@ -22,10 +22,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-import patsy
 from scipy.stats import zscore
-
-import matplotlib.transforms as mtransforms
 
 from mne import read_epochs, EvokedArray
 from mne.utils import logger
@@ -323,22 +320,22 @@ a_bias = pd.read_csv(os.path.join(FPATH_DERIVATIVES,
                      header=0)
 a_bias_design = a_bias.assign(intercept=1)
 a_bias_design = a_bias_design.assign(a_bias=zscore(a_bias_design.a_bias))
-a_bias_design = a_bias_design[['intercept', 'a_bias']]
+a_bias_design = a_bias_design[['a_bias']]
 
 lm = LinearModel()
-lm.fit(betas[:, 1, :] - betas[:, 0, :], a_bias_design)
+lm.fit(cue_b_betas - cue_a_betas, a_bias_design)
 
-a_bias_betas = lm.coef_
+a_bias_betas = lm.coef_.copy()
 
 # put them in mne.Evoked format
 a_bias_effect = EvokedArray(
-    a_bias_betas[1, :].copy().reshape((n_channels, n_times)),
+    a_bias_betas.copy().reshape((n_channels, n_times)) * 1e6,
     cue_epo.info, -0.25)
 
 # extract random subjects from overall sample
 a_bias_boot = np.zeros((boot, n_channels * n_times))
 random = np.random.RandomState(42)
-for i in range(0, 599):
+for i in range(0, boot):
     boot_samples = random.choice(
         range(betas.shape[0]), betas.shape[0], replace=True)
 
@@ -346,14 +343,22 @@ for i in range(0, 599):
     lm.fit(betas[boot_samples, 1, :] - betas[boot_samples, 0, :],
            a_bias_design.iloc[boot_samples])
 
-    a_bias_boot[i, :] = lm.coef_[1, :]
+    a_bias_boot[i, :] = lm.coef_.copy()
 
 l_tval = np.quantile(a_bias_boot, axis=0, q=0.01 / 2)
 l_tval = l_tval.reshape((n_channels, n_times))
 u_tval = np.quantile(a_bias_boot, axis=0, q=1 - 0.01 / 2)
 u_tval = u_tval.reshape((n_channels, n_times))
 
-fig = a_bias_effect.plot_joint(times=[0.80, 1.13, 1.32, 2.00],
+mask = ((l_tval > 0) & (u_tval > 0)) | ((u_tval < 0) & (l_tval < 0))
+
+fig = plot_contrast_tvals(a_bias_effect,
+                          times=[0.45, 1.32, 2.07],
+                          mask=mask,
+                          xlim=[-0.0, 2.50],
+                          clim=[-1.5, 1.5])
+
+fig = a_bias_effect.plot_joint(times=[1.12, 1.29],
                                topomap_args=dict(vlim=(-2.5, 2.5),
                                                  time_unit='ms'),
                                ts_args=dict(ylim=dict(eeg=[-2, 2]),
@@ -366,30 +371,29 @@ fig.axes[0].axvline(x=0, ymin=-2.5, ymax=2.5,
                     color='black', linestyle='dashed', linewidth=.8)
 fig.axes[0].axhline(y=0, xmin=-0.25, xmax=2.5,
                     color='black', linestyle='dashed', linewidth=.8)
-for text in fig.axes[0].texts:
-    text.set_visible(False)
-w, h = fig.get_size_inches()
-fig.set_size_inches(w * 1.0, h * 1.25)
-trans = mtransforms.ScaledTranslation(
-    -30 / 72, 30 / 72, fig.dpi_scale_trans
-)
 
 fig.axes[1].text(-2.0, 1.0, 'a' + ' |',
-                 transform=fig.axes[1].transAxes + trans,
+                 transform=fig.axes[1].transAxes,
                  fontsize='x-large', verticalalignment='top')
-fig.savefig('../results/figures/a_bias_cue_evoked.png', dpi=300)
+a_cue_bias_cue_path = os.path.join(
+    FPATH_DERIVATIVES, 'limo', 'a_bias_cue_evoked.png'
+)
+fig.savefig(a_cue_bias_cue_path, dpi=300)
 
 fig = plot_contrast_sensor(a_bias_effect,
                            lower_b=l_tval, upper_b=u_tval,
                            sig_mask=None,
-                           sensors=['P1', 'P5'],
+                           sensors=['O2', 'AF4'],
                            xlim=[-0.25, 2.5],
                            ylim=[-3, 3],
                            ylabel=r'$\beta$ ($\mu$V)',
                            panel_letters=['b', 'c'],
                            figsize=(7, 8),
                            scale=1e6)
-fig.savefig('../results/figures/a_bias_cue_effect.png', dpi=300)
+a_cue_bias_cue_effect_path = os.path.join(
+    FPATH_DERIVATIVES, 'limo', 'a_cue_bias_cue_effect.png'
+)
+fig.savefig(a_cue_bias_cue_effect_path, dpi=300)
 
 # %%
 # test effect of behavioural d' context on the amplitude response evoked
@@ -404,37 +408,45 @@ d_context = pd.read_csv(os.path.join(FPATH_DERIVATIVES,
 d_context_design = d_context.assign(intercept=1)
 d_context_design = d_context_design.assign(
     d_context=zscore(d_context_design.d_context))
-d_context_design = d_context_design[['intercept', 'd_context']]
+d_context_design = d_context_design[['d_context']]
 
 lm = LinearModel()
-lm.fit(betas[:, 1, :] - betas[:, 0, :], d_context_design)
+lm.fit(cue_b_betas - cue_a_betas, d_context_design)
 
-d_context_betas = lm.coef_
+d_context_betas = lm.coef_.copy()
 
 # put them in mne.Evoked format
 d_context_effect = EvokedArray(
-    d_context_betas[1, :].copy().reshape((n_channels, n_times)),
+    d_context_betas.copy().reshape((n_channels, n_times)) * 1e6,
     cue_epo.info, -0.25)
 
 # extract random subjects from overall sample
 d_context_boot = np.zeros((boot, n_channels * n_times))
 random = np.random.RandomState(42)
 for i in range(0, boot):
+
     boot_samples = random.choice(
         range(betas.shape[0]), betas.shape[0], replace=True)
-
     lm = LinearModel()
     lm.fit(betas[boot_samples, 1, :] - betas[boot_samples, 0, :],
            d_context_design.iloc[boot_samples])
 
-    d_context_boot[i, :] = lm.coef_[1, :]
+    d_context_boot[i, :] = lm.coef_
 
 l_tval = np.quantile(d_context_boot, axis=0, q=0.01 / 2)
 l_tval = l_tval.reshape((n_channels, n_times))
 u_tval = np.quantile(d_context_boot, axis=0, q=1 - 0.01 / 2)
 u_tval = u_tval.reshape((n_channels, n_times))
 
-fig = d_context_effect.plot_joint(times=[0.95, 0.71],
+mask = ((l_tval > 0) & (u_tval > 0)) | ((u_tval < 0) & (l_tval < 0))
+
+fig = plot_contrast_tvals(d_context_effect,
+                          times=[0.45, 1.32, 2.07],
+                          mask=mask,
+                          xlim=[-0.0, 2.50],
+                          clim=[-1.5, 1.5])
+
+fig = d_context_effect.plot_joint(times=[0.55, 1.400, 2.14],
                                   topomap_args=dict(vlim=(-2.5, 2.5),
                                                     time_unit='ms'),
                                   ts_args=dict(ylim=dict(eeg=[-2, 2]),
@@ -447,30 +459,29 @@ fig.axes[0].axvline(x=0, ymin=-2.5, ymax=2.5,
                     color='black', linestyle='dashed', linewidth=.8)
 fig.axes[0].axhline(y=0, xmin=-0.25, xmax=2.5,
                     color='black', linestyle='dashed', linewidth=.8)
-for text in fig.axes[0].texts:
-    text.set_visible(False)
-w, h = fig.get_size_inches()
-fig.set_size_inches(w * 1.0, h * 1.25)
-trans = mtransforms.ScaledTranslation(
-    -30 / 72, 30 / 72, fig.dpi_scale_trans
-)
 
 fig.axes[1].text(-2.0, 1.0, 'a' + ' |',
-                 transform=fig.axes[1].transAxes + trans,
+                 transform=fig.axes[1].transAxes,
                  fontsize='x-large', verticalalignment='top')
-fig.savefig('../results/figures/d_context_cue_evoked.png', dpi=300)
+d_context_cue_path = os.path.join(
+    FPATH_DERIVATIVES, 'limo', 'd_context_cue_evoked.png'
+)
+fig.savefig(d_context_cue_path, dpi=300)
 
 fig = plot_contrast_sensor(d_context_effect,
                            lower_b=l_tval, upper_b=u_tval,
                            sig_mask=None,
-                           sensors=['FCz', 'CP2'],
+                           sensors=['CP5', 'TP7'],
                            xlim=[-0.25, 2.5],
                            ylim=[-3, 3],
                            ylabel=r'$\beta$ ($\mu$V)',
                            panel_letters=['b', 'c'],
                            figsize=(7, 8),
                            scale=1e6)
-fig.savefig('../results/figures/d_context_cue_effect.png', dpi=300)
+d_context_cue_effect_path = os.path.join(
+    FPATH_DERIVATIVES, 'limo', 'd_context_cue_effect.png'
+)
+fig.savefig(d_context_cue_effect_path, dpi=300)
 
 pch, ptime = d_context_effect.get_peak(tmin=0.5, tmax=1.0, mode='pos')
 print(l_tval[channels.index(pch), times == ptime] * 1e6)

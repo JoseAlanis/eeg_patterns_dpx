@@ -300,12 +300,12 @@ fig = plot_contrast_sensor(preds_contrast_t,
                            lower_b=l_tval,
                            upper_b=u_tval,
                            sig_mask=sig_mask,
-                           sensors=['PO4', 'FCz', 'CP2'],
+                           sensors=['P6', 'Pz', 'CPz'],
                            xlim=[-0.25, 1.0],
                            ylim=[-15, 15],
                            figsize=(5.5, 10.5),
                            legend_fontsize='small',
-                           panel_letters=['d', 'e', 'f'],
+                           panel_letters=['f', 'g', 'h'],
                            label=label)
 probe_contrast_sensors_fig_path = os.path.join(
     FPATH_DERIVATIVES, 'limo', 'ttest_probes_sensors_%s_%s.png'

@@ -238,6 +238,98 @@ def plot_contrast_sensor(inst, lower_b=None, upper_b=None, sig_mask=None,
 
     return fig
 
+def plot_erps_sensor(erps, times, info, cond_names=None,
+                     sensors=['P5', 'Pz'], xlim=[-0.25, 1.0], ylim=[-7, 7],
+                     figsize=None, panel_letters=None,
+                     cmap=['magma', '0.15', '0.65'],
+                     legend_loc='lower right',
+                     legend_orient='vertical',
+                     legend_size='medium',
+                     label='Cue B - Cue A'):
+    from string import ascii_lowercase
+
+    channels = info.ch_names
+
+    if cond_names is None:
+        cond_names = [ascii_lowercase[i] for i in range(len(erps))]
+
+    if figsize is None:
+        figsize = (6.5, 3 * len(sensors))
+
+    if legend_orient == 'horizontal':
+        ncol = len(erps)
+    else:
+        ncol = 1
+
+    ci = within_subject_cis(erps) * 1e6
+
+    viridis = colormaps[cmap[0]]
+    colors = np.linspace(float(cmap[1]), float(cmap[2]), len(erps))
+
+    fig, ax = plt.subplots(nrows=len(sensors), ncols=1,
+                           figsize=figsize)
+
+    for nerp, erp in enumerate(erps):
+        for si, sensor in enumerate(sensors):
+            sens_ix = channels.index(sensor)
+
+            mean_sig = erp[:, sens_ix, :].mean(0) * 1e6
+
+            ax[si].plot(times, mean_sig,
+                        label=cond_names[nerp],
+                        color=viridis(colors[nerp]))
+            ax[si].set_ylim((ylim[0], ylim[1]))
+
+            ax[si].fill_between(times,
+                                mean_sig - ci[nerp, sens_ix, :],
+                                mean_sig + ci[nerp, sens_ix, :],
+                                color=viridis(colors[nerp]),
+                                edgecolor=None,
+                                alpha=0.25)
+
+            ax[si].invert_yaxis()
+            ax[si].axhline(y=0, xmin=xlim[0], xmax=xlim[-1],
+                           color='k', linestyle='dashed', linewidth=.75)
+            ax[si].axvline(x=0, ymin=ylim[0], ymax=ylim[-1],
+                           color='k', linestyle='dashed', linewidth=.75)
+            ax[si].set_title('%s' % sensor)
+
+            ax[si].legend(loc=legend_loc, alignment='left', framealpha=0,
+                          ncol=ncol, fontsize=legend_size)
+            xticks = np.arange(xlim[0], xlim[-1] + 0.01, 0.25)
+            ax[si].set_xticks(xticks)
+            ax[si].set_xticklabels([int(tick * 1000) for tick in xticks])
+
+            _evoked_sensor_legend(info, picks=[sens_ix], ax=ax[si],
+                                  ymin=-5.0, ymax=-15.0,
+                                  show_sensors=True,
+                                  sphere='eeglab')
+
+            ax[si].spines['top'].set_visible(False)
+            ax[si].spines['right'].set_visible(False)
+            ax[si].spines['left'].set_bounds(ylim[0], ylim[-1])
+            ax[si].spines['bottom'].set_bounds(xlim[0], xlim[-1])
+            ax[si].tick_params(axis='x', labelrotation=-45)
+            ax[si].set_ylabel(r'$\mu$V')
+            ax[si].set_xlabel('Time (ms)')
+
+            trans = mtransforms.ScaledTranslation(
+                -30 / 72, 30 / 72, fig.dpi_scale_trans
+            )
+            if panel_letters is None:
+                pl = ascii_lowercase[si]
+            else:
+                pl = panel_letters[si]
+
+            ax[si].text(0.0, 1.0, pl + ' |',
+                        transform=ax[si].transAxes + trans,
+                        fontsize='x-large', verticalalignment='top')
+
+    plt.subplots_adjust(hspace=0.75, top=0.95, bottom=0.10)
+    plt.close('all')
+
+    return fig
+
 
 def plot_gat_matrix(data, times, stats_dict,
                     mask=None, vmax=None, vmin=None,

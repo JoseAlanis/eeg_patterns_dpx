@@ -608,11 +608,11 @@ perform_index <- left_join(a_bias, d_context, by = 'subject')
 correlation::correlation(data = perform_index, ci = .99)
 
 # center indices around zero
-a_bias <- a_bias %>%
-  mutate(a_bias = a_bias - mean(a_bias))
-
-d_context <- d_context %>%
-  mutate(d_context = d_context - mean(d_context))
+# a_bias <- a_bias %>%
+#   mutate(a_bias = a_bias - mean(a_bias))
+#
+# d_context <- d_context %>%
+#   mutate(d_context = d_context - mean(d_context))
 
 # save performance indices
 write.table(d_context,
