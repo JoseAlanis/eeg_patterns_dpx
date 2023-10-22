@@ -19,7 +19,8 @@ from stats import within_subject_cis
 from mvpa import get_dfs
 
 def plot_contrast_tvals(inst, times, mask, figsize=(6.5, 5),
-                        mask_params=None, xlim=None, clim=None):
+                        mask_params=None, xlim=None, clim=None,
+                        lab_colorbar=None):
     if clim is None:
         clim = [None, None]
 
@@ -135,11 +136,13 @@ def plot_contrast_tvals(inst, times, mask, figsize=(6.5, 5),
                               connectionstyle="arc3, rad=0.2")
         fig.add_artist(con)
 
+    if lab_colorbar is None:
+        lab_colorbar = r'$t$-value'
     plot_brain_colorbar(axd['cbar'],
                         transparent=False,
                         clim=dict(kind='value', lims=[clim[0], 0, clim[-1]]),
                         colormap='RdBu_r',
-                        label=r'$t$-value')
+                        label=lab_colorbar)
 
     for label, ax in axd.items():
         # label physical distance in and down:

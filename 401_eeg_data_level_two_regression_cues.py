@@ -15,6 +15,8 @@ import sys
 import os
 import glob
 
+import re
+
 import json
 
 import matplotlib.pyplot as plt
@@ -64,7 +66,6 @@ if not hasattr(sys, "ps1"):
     overwrite = defaults["overwrite"]
     report = defaults["report"]
 
-
 # %%
 # paths and overwrite settings
 if subject not in SUBJECT_IDS:
@@ -89,15 +90,15 @@ FPATH_BETAS = os.path.join(FPATH_DERIVATIVES,
                            'sub-*',
                            'sub-*_betas.npy')
 FPATH_BETAS = glob.glob(FPATH_BETAS)
-FPATH_BETAS.sort()
 
 # %%
 # load subject level results
 shape_like = np.load(FPATH_BETAS[0]).shape
 
 betas = np.empty((len(FPATH_BETAS), shape_like[0], shape_like[1]))
-for nsubj, fpath in enumerate(FPATH_BETAS):
-    betas[nsubj, ...] = np.load(fpath)
+for fpath in FPATH_BETAS:
+    sj = re.search(r'\d+', os.path.basename(fpath)).group(0)
+    betas[int(sj) - 1, ...] = np.load(fpath)
 
 # create path for preprocessed data
 FPATH_EPOCHS = os.path.join(FPATH_DERIVATIVES,
@@ -345,9 +346,14 @@ for i in range(0, boot):
 
     a_bias_boot[i, :] = lm.coef_.copy()
 
-l_tval = np.quantile(a_bias_boot, axis=0, q=0.01 / 2)
+
+a = int(((0.01 * boot) / (2 * 1)) + 1)
+a_bias_boot.sort(axis=0)
+l_tval = a_bias_boot[a, :]
+u_tval = a_bias_boot[int(boot - a), :]
+#l_tval = np.quantile(a_bias_boot, axis=0, q=0.01 / 2)
 l_tval = l_tval.reshape((n_channels, n_times))
-u_tval = np.quantile(a_bias_boot, axis=0, q=1 - 0.01 / 2)
+#u_tval = np.quantile(a_bias_boot, axis=0, q=1 - 0.01 / 2)
 u_tval = u_tval.reshape((n_channels, n_times))
 
 mask = ((l_tval > 0) & (u_tval > 0)) | ((u_tval < 0) & (l_tval < 0))
@@ -422,7 +428,7 @@ d_context_effect = EvokedArray(
 
 # extract random subjects from overall sample
 d_context_boot = np.zeros((boot, n_channels * n_times))
-random = np.random.RandomState(42)
+random = np.random.RandomState(49)
 for i in range(0, boot):
 
     boot_samples = random.choice(
@@ -441,10 +447,24 @@ u_tval = u_tval.reshape((n_channels, n_times))
 mask = ((l_tval > 0) & (u_tval > 0)) | ((u_tval < 0) & (l_tval < 0))
 
 fig = plot_contrast_tvals(d_context_effect,
-                          times=[0.45, 1.32, 2.07],
+                          times=[0.295, 1.31, 2.07],
                           mask=mask,
                           xlim=[-0.0, 2.50],
-                          clim=[-1.5, 1.5])
+                          clim=[-1.5, 1.5],
+                          lab_colorbar=r'$\mu$V')
+d_context_cue_path = os.path.join(
+    FPATH_DERIVATIVES, 'limo', 'd_context_cue_evoked.png'
+)
+fig.savefig(d_context_cue_path, dpi=300)
+plt.close('all')
+
+
+l_tval[channels.index('PO7'), times == 2.078125] * 1e6
+u_tval[channels.index('PO7'), times == 2.078125] * 1e6
+d_context_effect.data[channels.index('PO7'), times == 2.078125]
+
+d_context_effect.get_peak(tmin=0.28, tmax=0.30, mode='pos',
+                          return_amplitude=True)
 
 fig = d_context_effect.plot_joint(times=[0.55, 1.400, 2.14],
                                   topomap_args=dict(vlim=(-2.5, 2.5),
