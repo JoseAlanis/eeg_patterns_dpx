@@ -14,6 +14,8 @@ import sys
 import os
 import glob
 
+import re
+
 import json
 
 import matplotlib.pyplot as plt
@@ -86,15 +88,15 @@ FPATH_BETAS = os.path.join(FPATH_DERIVATIVES,
                            'sub-*',
                            'sub-*_betas_probes.npy')
 FPATH_BETAS = glob.glob(FPATH_BETAS)
-FPATH_BETAS.sort()
 
 # %%
 # load subject level results
 shape_like = np.load(FPATH_BETAS[0]).shape
 
 betas = np.empty((len(FPATH_BETAS), shape_like[0], shape_like[1]))
-for nsubj, fpath in enumerate(FPATH_BETAS):
-    betas[nsubj, ...] = np.load(fpath)
+for fpath in FPATH_BETAS:
+    sj = re.search(r'\d+', os.path.basename(fpath)).group(0)
+    betas[int(sj) - 1, ...] = np.load(fpath)
 
 # create path for preprocessed dara
 FPATH_EPOCHS = os.path.join(FPATH_DERIVATIVES,
@@ -325,16 +327,16 @@ a_bias = pd.read_csv(os.path.join(FPATH_DERIVATIVES,
                      header=0)
 a_bias_design = a_bias.assign(intercept=1)
 a_bias_design = a_bias_design.assign(a_bias=zscore(a_bias_design.a_bias))
-a_bias_design = a_bias_design[['intercept', 'a_bias']]
+a_bias_design = a_bias_design[['a_bias']]
 
 lm = LinearModel()
-lm.fit(betas[:, 1, :] - betas[:, 0, :], a_bias_design)
+lm.fit(probe_1_coef - probe_0_coef, a_bias_design)
 
 a_bias_betas = lm.coef_
 
 # put them in mne.Evoked format
 a_bias_effect = EvokedArray(
-    a_bias_betas[1, :].copy().reshape((n_channels, n_times)),
+    a_bias_betas.copy().reshape((n_channels, n_times)) * 1e6,
     probe_epo.info, -0.25)
 
 # extract random subjects from overall sample
@@ -345,56 +347,88 @@ for i in range(0, boot):
         range(betas.shape[0]), betas.shape[0], replace=True)
 
     lm = LinearModel()
-    lm.fit(betas[boot_samples, 1, :] - betas[boot_samples, 0, :],
+    lm.fit(probe_1_coef[boot_samples, :] - probe_0_coef[boot_samples, :],
            a_bias_design.iloc[boot_samples])
 
-    a_bias_boot[i, :] = lm.coef_[1, :]
+    a_bias_boot[i, :] = lm.coef_.copy()
 
-l_tval = np.quantile(a_bias_boot, axis=0, q=0.01 / 2)
+a = int(((0.01 * boot) / (2 * 1)) + 1)
+a_bias_boot.sort(axis=0)
+l_tval = a_bias_boot[a, :]
+u_tval = a_bias_boot[int(boot - a), :]
 l_tval = l_tval.reshape((n_channels, n_times))
-u_tval = np.quantile(a_bias_boot, axis=0, q=1 - 0.01 / 2)
 u_tval = u_tval.reshape((n_channels, n_times))
 
-fig = a_bias_effect.plot_joint(times=[0.40, 0.45],
-                               topomap_args=dict(vlim=(-2.5, 2.5),
-                                                 time_unit='ms'),
-                               ts_args=dict(ylim=dict(eeg=[-2, 2]),
-                                            time_unit='ms'))
-fig.axes[0].axvline(x=0, ymin=-2.5, ymax=2.5,
-                    color='black', linestyle='dashed', linewidth=.8)
-fig.axes[0].axhline(y=0, xmin=-0.25, xmax=1.0,
-                    color='black', linestyle='dashed', linewidth=.8)
-for text in fig.axes[0].texts:
-    text.set_visible(False)
-w, h = fig.get_size_inches()
-fig.set_size_inches(w * 1.0, h * 1.25)
-trans = mtransforms.ScaledTranslation(
-    -30 / 72, 30 / 72, fig.dpi_scale_trans
+mask = ((l_tval > 0) & (u_tval > 0)) | ((u_tval < 0) & (l_tval < 0))
+fig = plot_contrast_tvals(a_bias_effect,
+                          times=[0.090, 0.26, 0.30, 0.70, 0.85],
+                          mask=mask,
+                          xlim=[-0.0, 1.0],
+                          clim=[-1.5, 1.5])
+a_bias_probe_fig_path = os.path.join(
+    FPATH_DERIVATIVES, 'limo', 'a_bias_probes_%s_effect_%s.png'
+                               % (probe_contr, method)
+)
+fig.savefig(a_bias_probe_fig_path, dpi=600)
+
+# get peaks
+early_positive = a_bias_effect.get_peak(
+    tmin=0.090, tmax=0.150, mode='pos', return_amplitude=True
+)
+early_negative = a_bias_effect.get_peak(
+    tmin=0.090, tmax=0.150, mode='neg', return_amplitude=True
 )
 
-fig.axes[1].text(-2.0, 1.0, 'a' + ' |',
-                 transform=fig.axes[1].transAxes + trans,
-                 fontsize='x-large', verticalalignment='top')
-fig.savefig('../results/figures/a_bias_probe_evoked.png', dpi=300)
+# get peaks
+mid_positive = a_bias_effect.get_peak(
+    tmin=0.250, tmax=0.350, mode='pos', return_amplitude=True
+)
+mid_negative = a_bias_effect.get_peak(
+    tmin=0.250, tmax=0.350, mode='neg', return_amplitude=True
+)
 
-fig = plot_contrast_sensor(a_bias_effect,
-                           lower_b=l_tval, upper_b=u_tval,
-                           sig_mask=None,
-                           sensors=['CPz', 'Pz'],
-                           xlim=[-0.25, 1.0],
-                           ylim=[-3, 3],
-                           ylabel=r'$\beta$ ($\mu$V)',
-                           panel_letters=['b', 'c'],
-                           figsize=(7, 8),
-                           scale=1e6,
-                           label=label)
-fig.savefig('../results/figures/a_bias_probe_effect.png', dpi=300)
+# get peaks
+late_positive = a_bias_effect.get_peak(
+    tmin=0.65, tmax=0.75, mode='pos', return_amplitude=True
+)
+late_negative = a_bias_effect.get_peak(
+    tmin=0.65, tmax=0.75, mode='neg', return_amplitude=True
+)
 
-pch, ptime, amp = a_bias_effect.get_peak(tmin=0.35, tmax=0.5, mode='pos',
-                                         return_amplitude=True)
-print(amp * 1e6)
-print(l_tval[channels.index(pch), times == ptime] * 1e6)
-print(u_tval[channels.index(pch), times == ptime] * 1e6)
+
+# store in dictionary
+a_cue_bias_effects = {
+    'early':
+        {'positive': early_positive,
+         'pos_lCI': float(l_tval[channels.index(early_positive[0]), times == early_positive[1]] * 1e6),
+         'pos_uCI': float(u_tval[channels.index(early_positive[0]), times == early_positive[1]] * 1e6),
+         'negative': early_negative,
+         'neg_lCI': float(l_tval[channels.index(early_negative[0]), times == early_negative[1]] * 1e6),
+         'neg_uCI': float(u_tval[channels.index(early_negative[0]), times == early_negative[1]] * 1e6)},
+    'mid':
+        {'positive': mid_positive,
+         'pos_lCI': float(l_tval[channels.index(mid_positive[0]), times == mid_positive[1]] * 1e6),
+         'pos_uCI': float(u_tval[channels.index(mid_positive[0]), times == mid_positive[1]] * 1e6),
+         'negative': mid_negative,
+         'neg_lCI': float(l_tval[channels.index(mid_negative[0]), times == mid_negative[1]] * 1e6),
+         'neg_uCI': float(u_tval[channels.index(mid_negative[0]), times == mid_negative[1]] * 1e6)},
+    'late':
+        {'positive': late_positive,
+         'pos_lCI': float(l_tval[channels.index(late_positive[0]), times == late_positive[1]] * 1e6),
+         'pos_uCI': float(u_tval[channels.index(late_positive[0]), times == late_positive[1]] * 1e6),
+         'negative': late_negative,
+         'neg_lCI': float(l_tval[channels.index(late_negative[0]), times == late_negative[1]] * 1e6),
+         'neg_uCI': float(u_tval[channels.index(late_negative[0]), times == late_negative[1]] * 1e6)},
+}
+
+# save cluster peaks
+a_cue_bias_probe_peaks_path = os.path.join(
+    FPATH_DERIVATIVES, 'limo', 'a_cue_bias_probe_%s_peaks_%s.json'
+                               % (probe_contr, method)
+)
+with open(a_cue_bias_probe_peaks_path, 'w') as fp:
+    json.dump(a_cue_bias_effects, fp)
+
 
 # %%
 
@@ -407,16 +441,16 @@ d_context = pd.read_csv(os.path.join(FPATH_DERIVATIVES,
 d_context_design = d_context.assign(intercept=1)
 d_context_design = d_context_design.assign(
     d_context=zscore(d_context_design.d_context))
-d_context_design = d_context_design[['intercept', 'd_context']]
+d_context_design = d_context_design[['d_context']]
 
 lm = LinearModel()
-lm.fit(betas[:, 1, :] - betas[:, 0, :], d_context_design)
+lm.fit(probe_1_coef - probe_0_coef, d_context_design)
 
 d_context_betas = lm.coef_
 
 # put them in mne.Evoked format
 d_context_effect = EvokedArray(
-    d_context_betas[1, :].copy().reshape((n_channels, n_times)),
+    d_context_betas.copy().reshape((n_channels, n_times)) * 1e6,
     probe_epo.info, -0.25)
 
 # extract random subjects from overall sample
@@ -427,48 +461,68 @@ for i in range(0, boot):
         range(betas.shape[0]), betas.shape[0], replace=True)
 
     lm = LinearModel()
-    lm.fit(betas[boot_samples, 1, :] - betas[boot_samples, 0, :],
+    lm.fit(probe_1_coef[boot_samples, :] - probe_0_coef[boot_samples, :],
            d_context_design.iloc[boot_samples])
 
-    d_context_boot[i, :] = lm.coef_[1, :]
+    d_context_boot[i, :] = lm.coef_.copy()
 
-l_tval = np.quantile(d_context_boot, axis=0, q=0.01 / 2)
+a = int(((0.01 * boot) / (2 * 1)) + 1)
+d_context_boot.sort(axis=0)
+l_tval = d_context_boot[a, :]
+u_tval = d_context_boot[int(boot - a), :]
 l_tval = l_tval.reshape((n_channels, n_times))
-u_tval = np.quantile(d_context_boot, axis=0, q=1 - 0.01 / 2)
 u_tval = u_tval.reshape((n_channels, n_times))
 
-fig = d_context_effect.plot_joint(times=[0.25, 0.35],
-                                  topomap_args=dict(vlim=(-2.5, 2.5),
-                                                    time_unit='ms'),
-                                  ts_args=dict(ylim=dict(eeg=[-2, 2]),
-                                               time_unit='ms'))
-fig.axes[0].axvline(x=0, ymin=-2.5, ymax=2.5,
-                    color='black', linestyle='dashed', linewidth=.8)
-fig.axes[0].axhline(y=0, xmin=-0.25, xmax=1.0,
-                    color='black', linestyle='dashed', linewidth=.8)
-for text in fig.axes[0].texts:
-    text.set_visible(False)
-w, h = fig.get_size_inches()
-fig.set_size_inches(w * 1.0, h * 1.25)
-trans = mtransforms.ScaledTranslation(
-    -30 / 72, 30 / 72, fig.dpi_scale_trans
+mask = ((l_tval > 0) & (u_tval > 0)) | ((u_tval < 0) & (l_tval < 0))
+fig = plot_contrast_tvals(d_context_effect,
+                          times=[0.20, 0.41, 0.52],
+                          mask=mask,
+                          xlim=[-0.0, 1.0],
+                          clim=[-1.5, 1.5])
+d_context_probe_fig_path = os.path.join(
+    FPATH_DERIVATIVES, 'limo', 'd_context_probes_%s_effect_%s.png'
+                               % (probe_contr, method)
+)
+fig.savefig(d_context_probe_fig_path, dpi=600)
+
+# get peaks
+early_positive = d_context_effect.get_peak(
+    tmin=0.2, tmax=0.21, mode='pos', return_amplitude=True
+)
+early_negative = d_context_effect.get_peak(
+    tmin=0.2, tmax=0.21, mode='neg', return_amplitude=True
 )
 
-fig.axes[1].text(-2.0, 1.0, 'a' + ' |',
-                 transform=fig.axes[1].transAxes + trans,
-                 fontsize='x-large', verticalalignment='top')
-fig.savefig('../results/figures/d_context_probe_evoked.png', dpi=300)
+# get peaks
+mid_positive = d_context_effect.get_peak(
+    tmin=0.40, tmax=0.550, mode='pos', return_amplitude=True
+)
+mid_negative = d_context_effect.get_peak(
+    tmin=0.40, tmax=0.550, mode='neg', return_amplitude=True
+)
 
+# store in dictionary
+d_context_effects = {
+    'early':
+        {'positive': early_positive,
+         'pos_lCI': float(l_tval[channels.index(early_positive[0]), times == early_positive[1]] * 1e6),
+         'pos_uCI': float(u_tval[channels.index(early_positive[0]), times == early_positive[1]] * 1e6),
+         'negative': early_negative,
+         'neg_lCI': float(l_tval[channels.index(early_negative[0]), times == early_negative[1]] * 1e6),
+         'neg_uCI': float(u_tval[channels.index(early_negative[0]), times == early_negative[1]] * 1e6)},
+    'mid':
+        {'positive': mid_positive,
+         'pos_lCI': float(l_tval[channels.index(mid_positive[0]), times == mid_positive[1]] * 1e6),
+         'pos_uCI': float(u_tval[channels.index(mid_positive[0]), times == mid_positive[1]] * 1e6),
+         'negative': mid_negative,
+         'neg_lCI': float(l_tval[channels.index(mid_negative[0]), times == mid_negative[1]] * 1e6),
+         'neg_uCI': float(u_tval[channels.index(mid_negative[0]), times == mid_negative[1]] * 1e6)},
+}
 
-fig = plot_contrast_sensor(d_context_effect,
-                           lower_b=l_tval, upper_b=u_tval,
-                           sig_mask=None,
-                           sensors=['FCz', 'Pz'],
-                           xlim=[-0.25, 1.0],
-                           ylim=[-3, 3],
-                           ylabel=r'$\beta$ ($\mu$V)',
-                           panel_letters=['b', 'c'],
-                           figsize=(7, 8),
-                           scale=1e6,
-                           label=label)
-fig.savefig('../results/figures/d_context_probe_effect.png', dpi=300)
+# save cluster peaks
+d_context_probe_peaks_path = os.path.join(
+    FPATH_DERIVATIVES, 'limo', 'd_context_probe_%s_peaks_%s.json'
+                               % (probe_contr, method)
+)
+with open(d_context_probe_peaks_path, 'w') as fp:
+    json.dump(d_context_effects, fp)
