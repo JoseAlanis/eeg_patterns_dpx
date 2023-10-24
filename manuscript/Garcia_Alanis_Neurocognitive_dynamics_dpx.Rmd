@@ -103,13 +103,25 @@ output            :
 ---
 
 ```{=tex}
-\graphicspath{{/media/administrator/Crucial X8/code/eeg_patterns_dpx/data/bids/derivatives/limo/}}
+%\graphicspath{{/media/administrator/Crucial X8/code/eeg_patterns_dpx/data/bids/derivatives/limo/}}
+\graphicspath{{/media/josealanis/Crucial X8/code/eeg_patterns_dpx/data/bids/derivatives/limo/}}
 ```
 
 ```{r setup, include = FALSE}
+knitr::opts_chunk$set(class.source = "customCode",
+                      class.output = "customOutput",
+                      class.message = "customWarning")
+if (interactive()) {
+  path <- dirname(rstudioapi::getSourceEditorContext()$path)
+} else {
+  path <- normalizePath('./')
+}
+setwd(path)
+
 library("papaja")
 library("rjson")
 library("dplyr")
+library("ggplot2")
 library("cowplot")
 source("../utils.R")
 r_refs("r-references.bib")
@@ -343,27 +355,47 @@ are significant at p<0.01, corrected for multiple comparisons.
 ```
 
 ```{r figure-cues, out.width="100%", fig.align = 'center'}
-fig_path <- '/media/administrator/Crucial X8/code/eeg_patterns_dpx/data/bids/derivatives/limo/'
+fig_path <- paste(
+  derivatives_path,
+  'limo',
+  sep = '/')
 p1 <- ggdraw() +
-  draw_image(paste0(fig_path, "cues_erps.png"),
+  draw_image(paste(fig_path, "cues_erps.png", sep = '/'),
              scale = 1, hjust=-0.1)
 p2 <- ggdraw() +
-  draw_image(paste0(fig_path, "ttest_cues_sensors_fmax.png"),
+  draw_image(paste(fig_path, "ttest_cues_sensors_fmax.png", sep = '/'),
              scale = 1, hjust=0.1)
 
-plot_grid(p1, p2)
+fig_cues <- plot_grid(p1, p2); fig_cues
+ggsave(filename = paste(derivatives_path,
+                        'limo',
+                        'Fig4.tiff',
+                        sep = '/'),
+       plot = fig_cues,
+       width = 12, height = 10,
+       dpi = 600)
 ```
 
 ```{r figure-probes, out.width="100%", fig.align = 'center'}
-fig_path <- '/media/administrator/Crucial X8/code/eeg_patterns_dpx/data/bids/derivatives/limo/'
+fig_path <- paste(
+  derivatives_path,
+  'limo',
+  sep = '/')
 p1 <- ggdraw() +
-  draw_image(paste0(fig_path, "probes_ax_ay_erps.png"),
+  draw_image(paste(fig_path, "probes_ax_ay_erps.png", sep = '/'),
              scale = 1, hjust=-0.1)
 p2 <- ggdraw() +
-  draw_image(paste0(fig_path, "ttest_probes_sensors_AY_AX_fmax.png"),,
+  draw_image(paste(fig_path, "ttest_probes_sensors_AY_AX_fmax.png", sep = '/'),,
              scale = 1, hjust=0.1)
 
-plot_grid(p1, p2)
+fig_probes <- plot_grid(p1, p2); fig_probes
+ggsave(filename = paste(derivatives_path,
+                        'limo',
+                        'Fig6.tiff',
+                        sep = '/'),
+       plot = fig_probes,
+       width = 12, height = 10,
+       dpi = 600)
 ```
 
 # Discussion

@@ -179,8 +179,8 @@ else:
 
 # classifier performance for specific time slices of interest
 if cue:
-    test_times = {'[1]  180 - 190  ms': [0.18, 0.19],
-                  '[2]  550 - 650  ms': [0.53, 0.63],
+    test_times = {'[1]   180 - 190  ms': [0.18, 0.19],
+                  '[2]   550 - 650  ms': [0.53, 0.63],
                   '[3] 1000 - 1100 ms': [1.0, 1.1]}
 else:
     test_times = {'[1] 2700 - 2800 ms': [2.7, 2.8],
@@ -199,7 +199,7 @@ fig = plot_gat_matrix(data=scores[:, zero:, zero:].mean(0),
                       stats_dict=stats_dict,
                       mask=(sig_mask if bootstrap else None),
                       vmax=0.7, vmin=0.3,
-                      draw_mask=True, draw_contour=True,
+                      draw_mask=False, draw_contour=False,
                       draw_diag=True, draw_zerolines=True,
                       xlabel="Time (ms)", ylabel="Time (ms)",
                       title_gat=('GAT (AX vs. BX)' if cue else 'GAT (AX vs. AY)'),
@@ -208,9 +208,13 @@ fig = plot_gat_matrix(data=scores[:, zero:, zero:].mean(0),
                       focus=None,
                       legend_loc='upper center',
                       figsize=(9.0, 6.0))
-fig.savefig('../results/figures/gat_matrix%s_%s%s.png' % (method, threshold,
-                                                          contrast),
-            dpi=600)
+gat_figure_path = os.path.join(
+    FPATH_DERIVATIVES,
+    'gat',
+    'gat_matrix_%s_%s%s.tiff'
+    % (method, threshold, contrast)
+)
+fig.savefig(gat_figure_path, dpi=600)
 
 # %%
 
@@ -246,6 +250,7 @@ fig = plot_gat_matrix(data=scores[:, zero:, zero:].mean(0),
                       figsize=(9.0, 6.0))
 fig.savefig('../results/figures/gat_matrix%s.png' % ('_probe' + contrast),
             dpi=600)
+
 #%%
 mean_scores = scores.mean(axis=0)
 times[(times >= 1.0) & (times <= 1.2)]

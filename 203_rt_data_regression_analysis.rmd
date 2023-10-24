@@ -837,6 +837,14 @@ predicted_errors <-
 behavioural_plot <- (predicted_correct_rt) + (predicted_incorrect_rt) + (predicted_errors) +
   plot_annotation(tag_levels = 'a', tag_suffix = ' |'); behavioural_plot
 
+ggsave(filename = paste(paths$bids,
+                        'derivatives',
+                        'behavioural_analysis',
+                        'Fig2.tiff',
+                        sep = '/'),
+       plot = behavioural_plot,
+       width = 15, height = 5,
+       dpi = 600)
 ```
 
 # 5) Compute A-cue bias

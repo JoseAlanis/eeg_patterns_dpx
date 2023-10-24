@@ -235,7 +235,7 @@ fig = plot_contrast_tvals(cue_contrast_t,
                           xlim=[-0.25, 2.50],
                           clim=[-12, 12])
 cue_contrast_fig_path = os.path.join(
-    FPATH_DERIVATIVES, 'limo', 'ttest_cues_tvals_%s.png'
+    FPATH_DERIVATIVES, 'limo', 'ttest_cues_tvals_%s.tiff'
                                % method
 )
 fig.savefig(cue_contrast_fig_path, dpi=600)

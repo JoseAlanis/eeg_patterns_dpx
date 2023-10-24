@@ -246,7 +246,7 @@ fig = plot_contrast_tvals(preds_contrast_t,
                           xlim=[-0.25, 1.00],
                           clim=[-12, 12])
 probe_contrast_fig_path = os.path.join(
-    FPATH_DERIVATIVES, 'limo', 'ttest_probes_%s_tvals_%s.png'
+    FPATH_DERIVATIVES, 'limo', 'ttest_probes_%s_tvals_%s.tiff'
                                % (probe_contr, method)
 )
 fig.savefig(probe_contrast_fig_path, dpi=600)
